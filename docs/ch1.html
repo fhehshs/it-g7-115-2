@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>資訊科技 7 年級第二學期 — 互動教學</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* ═══════════════════════════════════════
+   CSS 變數（全站顏色主題）
+   ══════════════════════════════════════ */
+:root {
+  --navy:#1E3A5F; --teal:#0D9488; --sage:#6B8F8F;
+  --purple:#6B3FA0; --gold:#F59E0B; --light:#F1F5F9; --white:#fff;
+  --text:#111827; --muted:#374151;
+  --radius:12px; --shadow:0 4px 20px rgba(0,0,0,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI','Noto Sans TC',sans-serif;background:#0f172a;color:var(--text);overflow:hidden;height:100vh}
+
+/* ═══ 進度條 ═══ */
+#progress-bar{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--purple),var(--teal),var(--gold));transition:width .4s;z-index:200}
+
+/* ═══ 頂部導覽 ═══ */
+#topbar{position:fixed;top:3px;left:0;right:0;height:48px;background:rgba(15,23,42,.92);backdrop-filter:blur(8px);display:flex;align-items:center;padding:0 16px;gap:12px;z-index:100;border-bottom:1px solid rgba(255,255,255,.08)}
+#topbar .tb-title{color:#fff;font-size:.85rem;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#topbar .tb-counter{color:var(--gold);font-size:.8rem;white-space:nowrap}
+#btn-toc{background:none;border:1px solid rgba(255,255,255,.2);color:#fff;padding:4px 10px;border-radius:6px;font-size:.75rem;cursor:pointer}
+#btn-toc:hover{background:rgba(255,255,255,.1)}
+
+/* ═══ 投影片容器 ═══ */
+#slide-wrap{position:fixed;top:51px;left:280px;right:0;bottom:64px;overflow:hidden;transition:left .3s}
+#slide-wrap.toc-hidden{left:0}
+#slide-frame{width:100%;height:100%;padding:20px 24px;overflow-y:auto;transition:opacity .2s}
+
+/* ═══ 投影片背景 ═══ */
+.bg-navy{background:linear-gradient(135deg,#1E3A5F 0%,#0f2340 100%)}
+.bg-teal{background:linear-gradient(135deg,#0D9488 0%,#065f46 100%)}
+.bg-sage{background:linear-gradient(135deg,#6B8F8F 0%,#4a6b6b 100%)}
+.bg-purple{background:linear-gradient(135deg,#6B3FA0 0%,#3b1f6b 100%)}
+.bg-white{background:#f8fafc}
+
+/* ═══ 底部導覽按鈕 ═══ */
+#nav-bar{position:fixed;bottom:0;left:280px;right:0;height:64px;background:rgba(15,23,42,.95);display:flex;align-items:center;justify-content:center;gap:16px;transition:left .3s;z-index:100}
+#nav-bar.toc-hidden{left:0}
+.nav-btn{background:var(--purple);color:#fff;border:none;padding:10px 28px;border-radius:24px;font-size:.9rem;cursor:pointer;font-weight:600;transition:all .2s}
+.nav-btn:hover{background:#5a3290;transform:translateY(-1px)}
+.nav-btn:disabled{background:#334155;cursor:not-allowed;transform:none}
+#slide-dots{display:flex;gap:6px;align-items:center;max-width:300px;flex-wrap:wrap;justify-content:center}
+.dot{width:8px;height:8px;border-radius:50%;background:#334155;cursor:pointer;transition:all .2s}
+.dot.active{background:var(--gold);transform:scale(1.3)}
+.dot.done{background:var(--teal)}
+
+/* ═══ TOC 側邊欄 ═══ */
+#toc{position:fixed;top:51px;left:0;width:280px;bottom:0;background:#0f172a;border-right:1px solid rgba(255,255,255,.08);overflow-y:auto;z-index:50;transition:transform .3s}
+#toc.hidden{transform:translateX(-100%)}
+#toc h3{padding:14px 16px 10px;color:var(--gold);font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid rgba(255,255,255,.06)}
+.toc-item{padding:7px 16px;font-size:.78rem;color:#cbd5e1;cursor:pointer;border-left:3px solid transparent;transition:all .15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.toc-item:hover{color:#fff;background:rgba(255,255,255,.05)}
+.toc-item.active{color:var(--gold);border-left-color:var(--gold);background:rgba(245,158,11,.08)}
+.toc-item.done{color:var(--teal)}
+.toc-chapter{padding:8px 16px 4px;font-size:.7rem;color:#475569;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-top:4px}
+
+/* ═══ 封面樣式 ═══ */
+.cover-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:calc(100vh - 130px);text-align:center;padding:20px}
+.cover-badge{background:rgba(107,63,160,.3);color:#c4b5fd;padding:6px 18px;border-radius:20px;font-size:.8rem;letter-spacing:.08em;margin-bottom:20px;border:1px solid rgba(107,63,160,.4)}
+.cover-title{font-size:clamp(1.8rem,4vw,3rem);font-weight:800;color:#fff;line-height:1.2;margin-bottom:12px}
+.cover-sub{font-size:clamp(.9rem,1.5vw,1.1rem);color:#94a3b8;margin-bottom:24px;max-width:500px}
+.cover-tags{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-bottom:20px}
+.tag{background:rgba(255,255,255,.1);color:#cbd5e1;padding:5px 14px;border-radius:14px;font-size:.78rem;border:1px solid rgba(255,255,255,.15)}
+.cover-meta{font-size:.75rem;color:#475569}
+
+/* ═══ 投影片通用 ═══ */
+.slide-inner{padding:8px 4px}
+.slide-title{font-size:clamp(1.1rem,2.2vw,1.5rem);font-weight:700;margin-bottom:12px;color:var(--text)}
+.slide-desc{font-size:.88rem;color:var(--muted);margin-bottom:14px}
+.slide-note{font-size:.82rem;color:var(--muted);margin-top:12px;padding:8px 12px;background:rgba(0,0,0,.05);border-radius:8px}
+.tip-box{background:linear-gradient(135deg,rgba(107,63,160,.1),rgba(30,58,95,.1));border:1px solid rgba(107,63,160,.25);border-radius:10px;padding:12px 16px;font-size:.83rem;color:var(--text);margin-top:12px;line-height:1.6}
+
+/* ═══ 卡片格 ═══ */
+.card-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px}
+.card-grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.info-card{background:rgba(255,255,255,.12);border-radius:10px;padding:12px;text-align:center;border:1px solid rgba(255,255,255,.15)}
+.card-icon{font-size:1.6rem;margin-bottom:6px}
+.card-label{font-size:.8rem;font-weight:700;color:#fff;margin-bottom:4px}
+.card-desc{font-size:.72rem;color:rgba(255,255,255,.92);line-height:1.4}
+
+/* ═══ 位元視覺 ═══ */
+.bit-demo{background:rgba(255,255,255,.06);border-radius:12px;padding:14px}
+.bit-box{padding:8px 16px;border-radius:10px;font-weight:700;font-size:.9rem;text-align:center}
+.bit-off{background:rgba(239,68,68,.25);border:2px solid rgba(239,68,68,.5);color:#fca5a5}
+.bit-on{background:rgba(34,197,94,.25);border:2px solid rgba(34,197,94,.5);color:#86efac}
+
+/* ═══ 平台表格 ═══ */
+.platform-table{border-radius:10px;overflow:hidden;border:1px solid #e2e8f0;margin-bottom:10px}
+.pt-header{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;background:var(--navy);color:#fff;padding:8px 12px;font-size:.75rem;font-weight:600;gap:8px}
+.pt-row{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;padding:8px 12px;font-size:.78rem;gap:8px;border-top:1px solid #f1f5f9;align-items:center}
+.pt-row:nth-child(even){background:#f8fafc}
+.pt-name{font-weight:600;color:var(--navy)}
+
+/* ═══ 四層架構 ═══ */
+.layer-stack{display:flex;flex-direction:column;gap:2px;margin:8px 0}
+.layer{display:flex;align-items:center;gap:12px;padding:10px 16px;border-radius:10px;border:1px solid rgba(255,255,255,.15)}
+.layer-hw{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.6);border-width:2px}
+.layer-os{background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.6);border-width:2px}
+.layer-app{background:rgba(13,148,136,.12);border-color:rgba(13,148,136,.6);border-width:2px}
+.layer-user{background:rgba(139,92,246,.12);border-color:rgba(139,92,246,.6);border-width:2px}
+.layer-num{width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,.18);color:#1e293b;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0}
+.layer-name{font-weight:700;font-size:.88rem;color:#1e293b;margin-bottom:2px}
+.layer-detail{font-size:.75rem;color:#475569}
+.layer-arrow{text-align:center;color:#64748b;font-size:.9rem;margin:-4px 0}
+
+/* ═══ 儲存單位 ═══ */
+.units-grid{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+.unit-row{display:flex;align-items:center;gap:12px;padding:7px 12px;border-radius:8px;background:#f1f5f9;border:1px solid #e2e8f0}
+.unit-small{border-color:rgba(59,130,246,.5);background:rgba(59,130,246,.08)}
+.unit-large{border-color:rgba(239,68,68,.5);background:rgba(239,68,68,.08)}
+.unit-name{font-size:.82rem;font-weight:700;color:#1e293b;min-width:150px}
+.unit-eq{font-size:.78rem;color:#475569}
+
+/* ═══ 資料表格 ═══ */
+.info-table{width:100%;border-collapse:collapse;font-size:.8rem;border-radius:10px;overflow:hidden;border:1px solid #e2e8f0}
+.info-table th,.info-table td{padding:8px 12px;text-align:left;border-bottom:1px solid #f1f5f9}
+.table-header{background:var(--navy);color:#fff}
+.table-header th{color:#fff;font-weight:600;font-size:.78rem;padding:9px 12px}
+.tr-highlight{background:rgba(13,148,136,.08)}
+.info-table tr:last-child td{border-bottom:none}
+.td-center{text-align:center}
+
+/* ═══ 功能卡片 ═══ */
+.func-card{display:flex;align-items:center;gap:10px;background:#f8fafc;border-radius:10px;padding:10px 12px;border:1px solid #e2e8f0}
+.fc-num{width:28px;height:28px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0}
+.fc-title{font-size:.82rem;font-weight:700;color:var(--navy);margin-bottom:3px}
+.fc-desc{font-size:.75rem;color:var(--muted);line-height:1.4}
+
+/* ═══ Fact Box ═══ */
+.fact-box{background:rgba(255,255,255,.08);border-radius:10px;padding:12px;margin-bottom:10px}
+.fact-box p{font-size:.8rem;color:rgba(255,255,255,.95);margin-bottom:6px;line-height:1.5}
+
+/* ═══ 圖表 ═══ */
+.chart-wrap-full{width:100%;margin-bottom:10px}
+
+/* ═══ 作業 ═══ */
+.task-single{background:rgba(255,255,255,.08);border-radius:10px;padding:14px 16px;border:1px solid rgba(255,255,255,.15);margin-bottom:14px}
+.task-title{font-size:.82rem;font-weight:700;color:var(--gold);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.1)}
+.task-item{font-size:.78rem;color:rgba(255,255,255,.8);margin-bottom:7px;padding-left:4px;line-height:1.4}
+.submit-box{display:flex;align-items:center;gap:14px;background:rgba(13,148,136,.2);border:1px solid rgba(13,148,136,.4);border-radius:12px;padding:14px 16px}
+.submit-icon{font-size:2rem;flex-shrink:0}
+.submit-title{font-size:.88rem;font-weight:700;color:#fff;margin-bottom:4px}
+.submit-desc{font-size:.78rem;color:rgba(255,255,255,.8);line-height:1.5}
+
+/* ═══ 影片區塊 ═══ */
+.video-section{margin:10px 0}
+.video-embed{border-radius:12px;overflow:hidden;background:#000;aspect-ratio:16/9;width:100%;max-width:560px;margin:0 auto}
+.video-embed iframe{width:100%;height:100%;border:none;display:block}
+.video-search-btn{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;text-decoration:none;padding:12px 20px;border-radius:12px;font-size:.85rem;font-weight:600;transition:all .2s;width:fit-content;margin:0 auto}
+.video-search-btn:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(220,38,38,.4)}
+.video-search-btn .yt-icon{font-size:1.2rem}
+
+/* ═══ 測驗 Modal ═══ */
+#quiz-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:300;display:none;align-items:center;justify-content:center;padding:20px}
+#quiz-overlay.show{display:flex}
+#quiz-box{background:#fff;border-radius:16px;max-width:600px;width:100%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+#quiz-header{background:var(--purple);color:#fff;padding:16px 20px;border-radius:16px 16px 0 0;display:flex;justify-content:space-between;align-items:center}
+#quiz-header h3{font-size:.95rem;font-weight:700}
+#quiz-header .qh-score{background:rgba(255,255,255,.2);padding:4px 12px;border-radius:12px;font-size:.78rem}
+#quiz-body{padding:16px 20px;overflow-y:auto;flex:1}
+.quiz-q{margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid #f1f5f9}
+.quiz-q:last-child{border-bottom:none}
+.q-text{font-size:.9rem;font-weight:600;color:var(--navy);margin-bottom:10px;line-height:1.4}
+.q-options{display:flex;flex-direction:column;gap:7px}
+.q-opt{padding:9px 14px;border:2px solid #e2e8f0;border-radius:10px;cursor:pointer;font-size:.82rem;transition:all .15s;line-height:1.3}
+.q-opt:hover{border-color:var(--purple);background:#faf5ff}
+.q-opt.selected{border-color:var(--navy);background:rgba(30,58,95,.05)}
+.q-opt.correct{border-color:#10b981;background:#f0fdf4;color:#065f46}
+.q-opt.wrong{border-color:#ef4444;background:#fef2f2;color:#991b1b}
+.q-exp{font-size:.78rem;color:#374151;background:#f8fafc;padding:8px 12px;border-radius:8px;margin-top:8px;border-left:3px solid var(--purple);line-height:1.5}
+#quiz-footer{padding:14px 20px;border-top:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;background:#fff;border-radius:0 0 16px 16px}
+#quiz-footer .qf-score{font-size:.88rem;font-weight:600;color:var(--navy)}
+#btn-submit-quiz,#btn-close-quiz{padding:8px 20px;border-radius:10px;border:none;cursor:pointer;font-size:.85rem;font-weight:600;transition:all .15s}
+#btn-submit-quiz{background:var(--navy);color:#fff}
+#btn-submit-quiz:hover{background:#0f2340}
+#btn-close-quiz{background:var(--purple);color:#fff;display:none}
+#btn-close-quiz:hover{background:#5a3290}
+</style>
+</head>
+<body>
+<script>window.__SLIDES__=[{"id": 1, "title": "資訊科技是什麼？計算工具的發展", "chapter": "封面", "bg": "navy", "html": "\n<div style='text-align:center;padding:24px 20px;'>\n  <div style='font-size:66px;margin-bottom:14px;'>🧮<\/div>\n  <h1 style='font-size:2.6rem;font-weight:900;color:#fff;margin-bottom:10px;'>資訊科技是什麼？<\/h1>\n  <h2 style='font-size:1.25rem;font-weight:400;color:#93c5fd;margin-bottom:24px;'>What is IT? · From Abacus to Computer<\/h2>\n  <div style='display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-bottom:22px;'><span style='background:rgba(255,255,255,0.15);color:#e0f2fe;padding:8px 18px;border-radius:20px;'>💬 IT 與 ICT<\/span><span style='background:rgba(255,255,255,0.15);color:#e0f2fe;padding:8px 18px;border-radius:20px;'>⚙️ 計算工具演進<\/span><span style='background:rgba(255,255,255,0.15);color:#e0f2fe;padding:8px 18px;border-radius:20px;'>🗂️ 打孔卡<\/span><span style='background:rgba(255,255,255,0.15);color:#e0f2fe;padding:8px 18px;border-radius:20px;'>🧠 馮紐曼<\/span><\/div>\n  <p style='color:#bfdbfe;font-size:1.05rem;'>七年級第二學期 ｜ 第 1 週<\/p>\n<\/div>\n", "quiz": null, "chart": null, "video": null}, {"id": 2, "title": "資訊科技 IT / ICT", "chapter": "第一節：資訊科技就在身邊", "bg": "white", "html": "<h2 class='slide-title'>資訊科技是什麼？你每天都在用它<\/h2>\n<div style='background:#f1f5f9;border-radius:10px;padding:12px 16px;margin-bottom:14px;border-left:4px solid #0d9488;'><p style='margin:0;color:#0f172a;font-size:.93rem;line-height:1.7;'>📖 <strong>資訊科技（Information Technology, IT）<\/strong>是管理與處理資訊所用的各種技術的總稱；加上通訊之後也常叫 <strong>ICT<\/strong>（Information and Communication Technology）。<\/p><\/div>\n<div style='display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;'><div style='background:#eff6ff;padding:14px;border-radius:10px;text-align:center;'><div style='font-size:1.8rem;'>💬<\/div><strong style='color:#1e40af;font-size:.9rem;'>人際溝通<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>LINE、Email、視訊上課<\/div><\/div><div style='background:#f0fdf4;padding:14px;border-radius:10px;text-align:center;'><div style='font-size:1.8rem;'>🛒<\/div><strong style='color:#166534;font-size:.9rem;'>行動支付<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>悠遊卡、街口、LINE Pay<\/div><\/div><div style='background:#fefce8;padding:14px;border-radius:10px;text-align:center;'><div style='font-size:1.8rem;'>🏥<\/div><strong style='color:#854d0e;font-size:.9rem;'>醫療健康<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>健保快易通 App 查就醫紀錄<\/div><\/div><div style='background:#f5f3ff;padding:14px;border-radius:10px;text-align:center;'><div style='font-size:1.8rem;'>📚<\/div><strong style='color:#5b21b6;font-size:.9rem;'>線上學習<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>YouTube、酷課雲、均一<\/div><\/div><div style='background:#f0fdfa;padding:14px;border-radius:10px;text-align:center;'><div style='font-size:1.8rem;'>🚇<\/div><strong style='color:#115e59;font-size:.9rem;'>交通出行<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>台北捷運 Go、YouBike 2.0<\/div><\/div><div style='background:#fff7ed;padding:14px;border-radius:10px;text-align:center;'><div style='font-size:1.8rem;'>🎮<\/div><strong style='color:#9a3412;font-size:.9rem;'>娛樂<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>串流音樂、線上遊戲、直播<\/div><\/div><\/div>\n<div style='background:#eff6ff;padding:11px 16px;border-radius:8px;border-left:4px solid #2563eb;'><p style='color:#374151;font-size:.88rem;margin:0;line-height:1.7;'>💬 <strong>一句話記住<\/strong>：只要是「用電子設備蒐集、處理、傳遞資訊」，就是資訊科技。<\/p><\/div>\n", "quiz": null, "chart": null, "video": null}, {"id": 3, "title": "我的科技一天", "chapter": "第一節：資訊科技就在身邊", "bg": "white", "html": "<h2 class='slide-title'>🕐 我的科技一天：從起床到現在<\/h2>\n<table style='width:100%;border-collapse:collapse;border-radius:10px;overflow:hidden;border:1px solid #e2e8f0;margin-bottom:12px;'><tr style='background:#1E3A5F;color:#fff;'><th style='padding:9px 12px;text-align:left;font-size:.8rem;width:18%;'>時間<\/th><th style='padding:9px 12px;text-align:left;font-size:.8rem;width:40%;'>我做了什麼<\/th><th style='padding:9px 12px;text-align:left;font-size:.8rem;width:42%;'>用到的資訊科技<\/th><\/tr><tr style='background:#fff;'><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>06:50<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>手機鬧鐘響了<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>手機作業系統、時鐘 App<\/td><\/tr><tr style='background:#f8fafc;'><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>07:20<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>刷悠遊卡搭公車<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>RFID 感應、票證系統<\/td><\/tr><tr style='background:#fff;'><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>07:30<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>看公車動態 App 等車<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>GPS 定位、4G／5G 網路<\/td><\/tr><tr style='background:#f8fafc;'><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>08:10<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>登入教育雲帳號<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>雲端帳號、瀏覽器<\/td><\/tr><tr style='background:#fff;'><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>（換你）<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>……<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>……<\/td><\/tr><\/table>\n<div style='background:#fefce8;padding:11px 16px;border-radius:8px;border-left:4px solid #f59e0b;'><p style='color:#374151;font-size:.88rem;margin:0;line-height:1.7;'> 🏁 <strong>2 分鐘挑戰<\/strong>：跟隔壁同學比一比，誰寫出的「資訊科技」比較多？至少寫 5 個。<\/p><\/div>\n", "quiz": null, "chart": null, "video": null}, {"id": 4, "title": "資訊科技的三件事", "chapter": "第一節：資訊科技就在身邊", "bg": "white", "html": "<h2 class='slide-title'>資訊科技在做的三件事：蒐集 → 處理 → 傳遞<\/h2>\n<div style='display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;'><div style='background:#eff6ff;padding:14px;border-radius:10px;'><div style='font-size:1.8rem;'>📥<\/div><strong style='color:#1e40af;font-size:.9rem;'>① 蒐集 Input<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>鍵盤打字、相機拍照、感測器量溫度——把真實世界變成電腦看得懂的資料<\/div><\/div><div style='background:#f0fdf4;padding:14px;border-radius:10px;'><div style='font-size:1.8rem;'>⚙️<\/div><strong style='color:#166534;font-size:.9rem;'>② 處理 Process<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>電腦依照程式計算、排序、比對、判斷——把資料變成有用的資訊<\/div><\/div><div style='background:#f5f3ff;padding:14px;border-radius:10px;'><div style='font-size:1.8rem;'>📤<\/div><strong style='color:#5b21b6;font-size:.9rem;'>③ 傳遞 Output<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>顯示在螢幕、印出來、透過網路傳給別人——讓資訊被使用<\/div><\/div><\/div>\n<div style='background:#eff6ff;padding:11px 16px;border-radius:8px;border-left:4px solid #2563eb;'><p style='color:#374151;font-size:.88rem;margin:0;line-height:1.7;'>💬 🚌 <strong>用公車動態驗證<\/strong>：GPS 蒐集公車位置 → 伺服器計算還要幾分鐘 → 站牌和 App 顯示「3 分鐘後到站」。<\/p><\/div>\n", "quiz": null, "chart": null, "video": null}, {"id": 5, "title": "第一節 隨堂測驗", "chapter": "第一節：資訊科技就在身邊", "bg": "purple", "quiz": "q1", "html": "\n<div style='text-align:center;padding:44px 20px;'>\n  <div style='font-size:54px;margin-bottom:16px;'>📝<\/div>\n  <h1 style='font-size:2rem;color:#fff;margin-bottom:10px;'>第一節 隨堂測驗<\/h1>\n  <p style='color:#e9d5ff;font-size:1rem;'>資訊科技的定義與功能 ｜ 3 題<\/p>\n  <p style='color:#c4b5fd;font-size:.85rem;margin-top:18px;'>按「下一頁 →」開始作答<\/p>\n<\/div>\n", "chart": null, "video": null}, {"id": 6, "title": "算盤：最早的計算工具之一", "chapter": "第二節：機械計算工具", "bg": "white", "html": "<h2 class='slide-title'>🧮 算盤：靠「人」移動珠子來計算<\/h2>\n<div style='display:grid;grid-template-columns:1.2fr 1fr;gap:12px;'><div style='background:#fefce8;padding:14px;border-radius:10px;'><div style='font-size:1.8rem;'>🧮<\/div><strong style='color:#854d0e;font-size:.9rem;'>怎麼運作？<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>每一根桿子代表一個位數（個、十、百…），上珠一顆代表 5，下珠一顆代表 1。<br>算盤不會自己算，<strong>規則在人的腦袋裡<\/strong>，人照規則撥珠子。<\/div><\/div><div style='background:#eff6ff;padding:14px;border-radius:10px;'><div style='font-size:1.8rem;'>💡<\/div><strong style='color:#1e40af;font-size:.9rem;'>為什麼重要？<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>它把「數字」用<strong>位置<\/strong>和<strong>珠子狀態<\/strong>表示出來——這跟電腦用 0 和 1 表示資料的想法很像！<\/div><\/div><\/div>\n<div style='background:#eff6ff;padding:11px 16px;border-radius:8px;border-left:4px solid #2563eb;'><p style='color:#374151;font-size:.88rem;margin:0;line-height:1.7;'>💬 🤔 <strong>想一想<\/strong>：算盤的「計算規則」存在哪裡？電腦的「計算規則」又存在哪裡？（提示：下一節揭曉）<\/p><\/div>\n", "quiz": null, "chart": null, "video": null}, {"id": 7, "title": "巴斯卡與萊布尼茲", "chapter": "第二節：機械計算工具", "bg": "white", "html": "<h2 class='slide-title'>⚙️ 用齒輪自動進位：機械計算機誕生<\/h2>\n<div style='display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px;'><div style='background:#eff6ff;padding:14px;border-radius:10px;'><div style='font-size:1.8rem;'>⚙️<\/div><strong style='color:#1e40af;font-size:.9rem;'>1642｜巴斯卡加法器（Pascaline）<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>法國數學家<strong>巴斯卡<\/strong>為了幫當稅務官的爸爸算帳，用齒輪做出能<strong>加減<\/strong>的機器。齒輪轉一圈，下一位自動 +1，就是「進位」。<\/div><\/div><div style='background:#f0fdf4;padding:14px;border-radius:10px;'><div style='font-size:1.8rem;'>✖️<\/div><strong style='color:#166534;font-size:.9rem;'>1694｜萊布尼茲計算器<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>德國數學家<strong>萊布尼茲<\/strong>改良設計，可以做<strong>乘、除<\/strong>運算。他也深入研究了<strong>二進位<\/strong>，後來成為電腦的基礎。<\/div><\/div><\/div>\n<div style='background:#fefce8;padding:11px 16px;border-radius:8px;border-left:4px solid #f59e0b;'><p style='color:#374151;font-size:.88rem;margin:0;line-height:1.7;'> 📌 共同點：計算開始由<strong>機器<\/strong>完成，人只要「輸入數字、轉動把手」。但這些機器還不能「改變要做的事」。<\/p><\/div>\n", "quiz": null, "chart": null, "video": null}, {"id": 8, "title": "巴貝奇：電腦之父", "chapter": "第二節：機械計算工具", "bg": "white", "html": "<h2 class='slide-title'>🖥️ 巴貝奇（Babbage）：被稱為「電腦之父」<\/h2>\n<div style='display:grid;grid-template-columns:1.3fr 1fr;gap:12px;'><div style='background:#eff6ff;padding:14px;border-radius:10px;'><div style='font-size:1.8rem;'>⚙️<\/div><strong style='color:#1e40af;font-size:.9rem;'>差分機與分析機<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>英國數學家<strong>巴貝奇<\/strong>先設計<strong>差分機<\/strong>（1820 年代）自動計算數學表；後來設計更厲害的<strong>分析機<\/strong>（1830 年代），構想中有：<br>📥 輸入　⚙️ 運算　🧠 儲存　🎛️ 控制　📤 輸出<br>和今天電腦的<strong>五大單元<\/strong>幾乎一樣！<\/div><\/div><div style='background:#f5f3ff;padding:14px;border-radius:10px;'><div style='font-size:1.8rem;'>👩‍💻<\/div><strong style='color:#5b21b6;font-size:.9rem;'>第一位程式設計師？<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>數學家<strong>愛達・勒芙蕾絲（Ada Lovelace）<\/strong>為分析機寫下計算步驟，被許多人視為<strong>史上第一位程式設計師<\/strong>。<br>可惜當時技術做不出那麼精密的零件，分析機沒有完成。<\/div><\/div><\/div>\n<div style='background:#eff6ff;padding:11px 16px;border-radius:8px;border-left:4px solid #2563eb;'><p style='color:#374151;font-size:.88rem;margin:0;line-height:1.7;'>💬 💬 「電腦之父」的意思是：他最早提出「電腦應該由哪些部分組成」的完整構想。<\/p><\/div>\n", "quiz": null, "chart": null, "video": null}, {"id": 9, "title": "計算工具時間軸", "chapter": "第二節：機械計算工具", "bg": "white", "video": {"query": "晶片崛起 電腦發展史 中文", "title": "延伸影片：電腦是怎麼一步步發明的？", "desc": "在 YouTube 搜尋「電腦發展史」，挑一支 5 分鐘內的中文影片"}, "html": "<h2 class='slide-title'>🗓️ 計算工具演進時間軸<\/h2>\n<table style='width:100%;border-collapse:collapse;border-radius:10px;overflow:hidden;border:1px solid #e2e8f0;margin-bottom:12px;'><tr style='background:#1E3A5F;color:#fff;'><th style='padding:9px 12px;text-align:left;font-size:.8rem;width:16%;'>年代<\/th><th style='padding:9px 12px;text-align:left;font-size:.8rem;width:20%;'>工具<\/th><th style='padding:9px 12px;text-align:left;font-size:.8rem;width:18%;'>發明者<\/th><th style='padding:9px 12px;text-align:left;font-size:.8rem;width:46%;'>關鍵突破<\/th><\/tr><tr style='background:#fff;'><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>古代<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>算盤<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>（中國等地）<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>用位置表示數字，人依規則計算<\/td><\/tr><tr style='background:#f8fafc;'><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>1642<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>加法器<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>巴斯卡<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>齒輪自動進位，能加減<\/td><\/tr><tr style='background:#fff;'><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>1694<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>計算器<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>萊布尼茲<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>能乘除；研究二進位<\/td><\/tr><tr style='background:#f8fafc;'><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>1820–30 年代<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>差分機／分析機<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>巴貝奇<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>提出五大單元構想<\/td><\/tr><tr style='background:#fff;'><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>1890<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>打孔卡製表機<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>何樂禮<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>資料自動化處理<\/td><\/tr><tr style='background:#f8fafc;'><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>1945<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>馮紐曼架構<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>馮紐曼<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>二進位＋程式存在記憶體<\/td><\/tr><\/table>\n<div id='video-section-9' class='video-section'><\/div>\n", "quiz": null, "chart": null}, {"id": 10, "title": "第二節 隨堂測驗", "chapter": "第二節：機械計算工具", "bg": "purple", "quiz": "q2", "html": "\n<div style='text-align:center;padding:44px 20px;'>\n  <div style='font-size:54px;margin-bottom:16px;'>📝<\/div>\n  <h1 style='font-size:2rem;color:#fff;margin-bottom:10px;'>第二節 隨堂測驗<\/h1>\n  <p style='color:#e9d5ff;font-size:1rem;'>機械計算工具 ｜ 3 題<\/p>\n  <p style='color:#c4b5fd;font-size:.85rem;margin-top:18px;'>按「下一頁 →」開始作答<\/p>\n<\/div>\n", "chart": null, "video": null}, {"id": 11, "title": "何樂禮打孔卡", "chapter": "第三節：資料自動化與現代電腦", "bg": "white", "html": "<h2 class='slide-title'>🗂️ 何樂禮（Hollerith）打孔卡：讓機器「讀資料」<\/h2>\n<div style='display:grid;grid-template-columns:1.2fr 1fr;gap:12px;'><div style='background:#fff7ed;padding:14px;border-radius:10px;'><div style='font-size:1.8rem;'>😵<\/div><strong style='color:#9a3412;font-size:.9rem;'>問題：人口普查算不完<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>美國每 10 年做一次人口普查。1880 年的普查用人工統計，花了將近 <strong>8 年<\/strong>才整理完——人口越來越多，再這樣下去會來不及！<\/div><\/div><div style='background:#f0fdf4;padding:14px;border-radius:10px;'><div style='font-size:1.8rem;'>🗂️<\/div><strong style='color:#166534;font-size:.9rem;'>解法：打孔卡製表機<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>1890 年，<strong>何樂禮<\/strong>把每個人的資料用<strong>卡片上的孔洞位置<\/strong>記錄，機器用電路偵測「有孔／沒孔」自動計數，統計時間大幅縮短。<\/div><\/div><\/div>\n<div style='background:#fefce8;padding:11px 16px;border-radius:8px;border-left:4px solid #f59e0b;'><p style='color:#374151;font-size:.88rem;margin:0;line-height:1.7;'> 💡 「有孔／沒孔」就是兩種狀態——跟電腦的 <strong>1／0<\/strong> 是同一個概念！<\/p><\/div>\n", "quiz": null, "chart": null, "video": null}, {"id": 12, "title": "從打孔卡到 IBM", "chapter": "第三節：資料自動化與現代電腦", "bg": "white", "html": "<h2 class='slide-title'>🏢 打孔卡的影響：一家公司、一整個產業<\/h2>\n<div style='display:flex;flex-direction:column;gap:8px;margin-bottom:12px;'><div style='display:flex;gap:12px;align-items:flex-start;background:#eff6ff;border-radius:10px;padding:10px 14px;'><div style='width:28px;height:28px;border-radius:50%;background:#2563eb;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0;'>1<\/div><div><strong style='color:#1e40af;font-size:.88rem;'>1896｜何樂禮成立製表機公司<\/strong><div style='font-size:.8rem;color:#475569;margin-top:3px;line-height:1.6;'>把打孔卡機器賣給政府和企業，處理帳務、統計<\/div><\/div><\/div><div style='display:flex;gap:12px;align-items:flex-start;background:#eff6ff;border-radius:10px;padding:10px 14px;'><div style='width:28px;height:28px;border-radius:50%;background:#2563eb;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0;'>2<\/div><div><strong style='color:#1e40af;font-size:.88rem;'>1924｜公司合併後改名 IBM<\/strong><div style='font-size:.8rem;color:#475569;margin-top:3px;line-height:1.6;'>IBM（International Business Machines）後來成為全球最重要的電腦公司之一<\/div><\/div><\/div><div style='display:flex;gap:12px;align-items:flex-start;background:#eff6ff;border-radius:10px;padding:10px 14px;'><div style='width:28px;height:28px;border-radius:50%;background:#2563eb;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0;'>3<\/div><div><strong style='color:#1e40af;font-size:.88rem;'>1950–70 年代｜程式也寫在打孔卡上<\/strong><div style='font-size:.8rem;color:#475569;margin-top:3px;line-height:1.6;'>早期工程師一張卡打一行程式，整盒卡片就是一個程式——掉在地上順序亂了就慘了！<\/div><\/div><\/div><\/div>\n<div style='background:#eff6ff;padding:11px 16px;border-radius:8px;border-left:4px solid #2563eb;'><p style='color:#374151;font-size:.88rem;margin:0;line-height:1.7;'>💬 🔑 打孔卡帶來兩個重要觀念：<strong>資料可以被機器讀取<\/strong>、<strong>指令可以預先寫好讓機器照做<\/strong>。<\/p><\/div>\n", "quiz": null, "chart": null, "video": null}, {"id": 13, "title": "馮紐曼架構", "chapter": "第三節：資料自動化與現代電腦", "bg": "white", "html": "<h2 class='slide-title'>🧠 馮紐曼（von Neumann）：現代電腦之父<\/h2>\n<div style='background:#f1f5f9;border-radius:10px;padding:12px 16px;margin-bottom:14px;border-left:4px solid #7c3aed;'><p style='margin:0;color:#0f172a;font-size:.93rem;line-height:1.7;'>📖 1945 年，數學家<strong>馮紐曼<\/strong>提出「<strong>內儲程式<\/strong>」的電腦設計：程式和資料都用<strong>二進位<\/strong>表示，一起存放在<strong>記憶體<\/strong>裡。<\/p><\/div>\n<div style='display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px;'><div style='background:#fef2f2;padding:14px;border-radius:10px;'><div style='font-size:1.8rem;'>🔌<\/div><strong style='color:#991b1b;font-size:.9rem;'>以前：改程式要「改線路」<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>早期電腦（如 ENIAC）換一個工作，要工程師重新插拔大量電線，可能要好幾天。<\/div><\/div><div style='background:#f0fdf4;padding:14px;border-radius:10px;'><div style='font-size:1.8rem;'>💾<\/div><strong style='color:#166534;font-size:.9rem;'>之後：改程式只要「換軟體」<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>程式放在記憶體，想做別的事就載入別的程式——就像你的手機可以裝各種 App。<\/div><\/div><\/div>\n<div style='background:#eff6ff;padding:11px 16px;border-radius:8px;border-left:4px solid #2563eb;'><p style='color:#374151;font-size:.88rem;margin:0;line-height:1.7;'>💬 📱 你今天能在同一台電腦上打報告、看影片、寫 Scratch，都要感謝馮紐曼架構。<\/p><\/div>\n", "quiz": null, "chart": null, "video": null}, {"id": 14, "title": "第三節 隨堂測驗", "chapter": "第三節：資料自動化與現代電腦", "bg": "purple", "quiz": "q3", "html": "\n<div style='text-align:center;padding:44px 20px;'>\n  <div style='font-size:54px;margin-bottom:16px;'>📝<\/div>\n  <h1 style='font-size:2rem;color:#fff;margin-bottom:10px;'>第三節 隨堂測驗<\/h1>\n  <p style='color:#e9d5ff;font-size:1rem;'>打孔卡與馮紐曼架構 ｜ 3 題<\/p>\n  <p style='color:#c4b5fd;font-size:.85rem;margin-top:18px;'>按「下一頁 →」開始作答<\/p>\n<\/div>\n", "chart": null, "video": null}, {"id": 15, "title": "電腦之父 vs 現代電腦之父", "chapter": "第四節：台灣的電腦故事", "bg": "white", "html": "<h2 class='slide-title'>⚖️ 比一比：巴貝奇 vs 馮紐曼<\/h2>\n<table style='width:100%;border-collapse:collapse;border-radius:10px;overflow:hidden;border:1px solid #e2e8f0;margin-bottom:12px;'><tr style='background:#1E3A5F;color:#fff;'><th style='padding:9px 12px;text-align:left;font-size:.8rem;width:22%;'><\/th><th style='padding:9px 12px;text-align:left;font-size:.8rem;width:39%;'>巴貝奇 Babbage<\/th><th style='padding:9px 12px;text-align:left;font-size:.8rem;width:39%;'>馮紐曼 von Neumann<\/th><\/tr><tr style='background:#fff;'><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>稱號<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>電腦之父<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>現代電腦之父<\/td><\/tr><tr style='background:#f8fafc;'><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>年代<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>1830 年代<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>1945 年<\/td><\/tr><tr style='background:#fff;'><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>主要貢獻<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>提出電腦五大單元的構想<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>提出二進位＋內儲程式架構<\/td><\/tr><tr style='background:#f8fafc;'><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>有沒有做出來？<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>受限當時技術，沒有完成<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>影響後來幾乎所有電腦的設計<\/td><\/tr><tr style='background:#fff;'><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>對今天的影響<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>電腦「由哪些部分組成」<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>電腦「怎麼執行程式」<\/td><\/tr><\/table>\n<div style='background:#eff6ff;padding:11px 16px;border-radius:8px;border-left:4px solid #2563eb;'><p style='color:#374151;font-size:.88rem;margin:0;line-height:1.7;'>💬 🧠 記憶小撇步：<strong>巴<\/strong>貝奇給了電腦「身體」（五大單元），<strong>馮<\/strong>紐曼給了電腦「靈魂的放法」（程式存在記憶體）。<\/p><\/div>\n", "quiz": null, "chart": null, "video": null}, {"id": 16, "title": "台灣的電腦故事", "chapter": "第四節：台灣的電腦故事", "bg": "white", "html": "<h2 class='slide-title'>🇹🇼 台灣的電腦故事<\/h2>\n<div style='display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;'><div style='background:#eff6ff;padding:14px;border-radius:10px;'><div style='font-size:1.8rem;'>🏫<\/div><strong style='color:#1e40af;font-size:.9rem;'>1962｜台灣第一部電腦<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>交通大學引進 <strong>IBM 650<\/strong>，是台灣第一部電腦，開啟了台灣的資訊教育與研究。<\/div><\/div><div style='background:#f0fdf4;padding:14px;border-radius:10px;'><div style='font-size:1.8rem;'>🧑‍🏫<\/div><strong style='color:#166534;font-size:.9rem;'>1981｜小教授一號<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>宏碁推出教學用微電腦「<strong>小教授一號<\/strong>」，讓學生能動手學習電腦原理，還外銷到國外。<\/div><\/div><div style='background:#f5f3ff;padding:14px;border-radius:10px;'><div style='font-size:1.8rem;'>🏭<\/div><strong style='color:#5b21b6;font-size:.9rem;'>今天｜晶片製造重鎮<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>台積電等台灣半導體公司，為全球手機、電腦和 AI 伺服器製造先進晶片。<\/div><\/div><\/div>\n<div style='background:#fefce8;padding:11px 16px;border-radius:8px;border-left:4px solid #f59e0b;'><p style='color:#374151;font-size:.88rem;margin:0;line-height:1.7;'> 💬 從「買別人的電腦來用」到「幫全世界做電腦的核心晶片」，台灣只花了大約 60 年。<\/p><\/div>\n", "quiz": null, "chart": null, "video": null}, {"id": 17, "title": "第四節 隨堂測驗", "chapter": "第四節：台灣的電腦故事", "bg": "purple", "quiz": "q4", "html": "\n<div style='text-align:center;padding:44px 20px;'>\n  <div style='font-size:54px;margin-bottom:16px;'>📝<\/div>\n  <h1 style='font-size:2rem;color:#fff;margin-bottom:10px;'>第四節 隨堂測驗<\/h1>\n  <p style='color:#e9d5ff;font-size:1rem;'>比較與台灣案例 ｜ 3 題<\/p>\n  <p style='color:#c4b5fd;font-size:.85rem;margin-top:18px;'>按「下一頁 →」開始作答<\/p>\n<\/div>\n", "chart": null, "video": null}, {"id": 18, "title": "分組實作：計算工具博物館", "chapter": "分組實作", "bg": "white", "html": "<h2 class='slide-title'>🎯 分組實作：「計算工具博物館」共編簡報<\/h2>\n<div style='background:#eff6ff;border-radius:12px;padding:16px;margin-bottom:12px;'><p style='color:#1e40af;font-size:.9rem;font-weight:700;margin-bottom:8px;'>📋 全班共用一份 Google 簡報，每組負責 1 頁「展品」<\/p><div style='display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;'><div style='background:#f8fafc;padding:14px;border-radius:10px;'><strong style='color:#334155;font-size:.9rem;'>展品名稱與年代<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>從時間軸挑一個計算工具（老師分配，不重複）<\/div><\/div><div style='background:#f8fafc;padding:14px;border-radius:10px;'><strong style='color:#334155;font-size:.9rem;'>它解決了什麼問題？<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>用<strong>自己的話<\/strong>說，不要整段複製網路文字<\/div><\/div><div style='background:#f8fafc;padding:14px;border-radius:10px;'><strong style='color:#334155;font-size:.9rem;'>跟今天電腦的關係<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>它的哪個想法，到現在電腦還在用？<\/div><\/div><\/div>\n<\/div><div style='display:grid;grid-template-columns:1.2fr 1fr;gap:12px;'><div style='background:#f0fdf4;border-radius:10px;padding:14px;'><strong style='color:#166534;font-size:.9rem;'>✅ 加分項目<\/strong><ul style='color:#334155;font-size:.8rem;line-height:1.85;padding-left:18px;margin:6px 0 0;'><li>附上圖片並<strong>註明來源與授權<\/strong>（記得上學期的創用 CC）<\/li><li>找到一個課本沒寫的冷知識<\/li><li>資料來源至少 2 個並互相比對<\/li><\/ul><\/div><div style='background:#fffbeb;border-radius:10px;padding:14px;'><strong style='color:#92400e;font-size:.9rem;'>📏 評分（規準一：數位工具實作）<\/strong><p style='font-size:.78rem;color:#334155;margin-top:6px;line-height:1.8;'><strong style='color:#059669;'>A<\/strong> 內容正確完整、整合多元資料並清楚表達<br><strong style='color:#2563eb;'>B<\/strong> 三項都完成且正確<br><strong style='color:#d97706;'>C<\/strong> 引導下完成主要內容<br><strong style='color:#dc2626;'>D<\/strong> 僅完成部分內容<\/p><\/div><\/div>\n", "quiz": null, "chart": null, "video": null}, {"id": 19, "title": "本章重點回顧", "chapter": "分組實作", "bg": "navy", "html": "\n<h2 style='color:#fff;font-size:1.5rem;font-weight:700;margin-bottom:14px;'>📌 第 1 週 重點回顧<\/h2>\n<div style='display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;'><div style='background:rgba(255,255,255,.1);border-radius:10px;padding:13px;'><strong style='color:#93c5fd;font-size:.9rem;'>資訊科技 IT / ICT<\/strong><p style='color:#e2e8f0;font-size:.8rem;margin-top:5px;line-height:1.7;'>用電子設備蒐集、處理、傳遞資訊的技術總稱<\/p><\/div><div style='background:rgba(255,255,255,.1);border-radius:10px;padding:13px;'><strong style='color:#93c5fd;font-size:.9rem;'>機械計算<\/strong><p style='color:#e2e8f0;font-size:.8rem;margin-top:5px;line-height:1.7;'>巴斯卡（加減）→ 萊布尼茲（乘除、二進位）→ 巴貝奇（五大單元構想）<\/p><\/div><div style='background:rgba(255,255,255,.1);border-radius:10px;padding:13px;'><strong style='color:#93c5fd;font-size:.9rem;'>資料自動化<\/strong><p style='color:#e2e8f0;font-size:.8rem;margin-top:5px;line-height:1.7;'>何樂禮打孔卡：用「有孔／沒孔」讓機器讀資料，IBM 的前身<\/p><\/div><div style='background:rgba(255,255,255,.1);border-radius:10px;padding:13px;'><strong style='color:#93c5fd;font-size:.9rem;'>現代電腦<\/strong><p style='color:#e2e8f0;font-size:.8rem;margin-top:5px;line-height:1.7;'>馮紐曼：二進位＋程式存在記憶體 → 同一台電腦能做很多事<\/p><\/div><\/div>\n<div style='background:linear-gradient(90deg,rgba(13,148,136,.35),rgba(107,63,160,.35));border-radius:10px;padding:16px 20px;text-align:center;'>\n  <p style='color:#fff;font-size:1.02rem;font-weight:700;margin:0;'>從齒輪到晶片——電腦的「零件」是怎麼越變越小的？<\/p>\n  <p style='color:#cbd5e1;font-size:.82rem;margin-top:6px;'>下一週：電子元件五世代與 AI PC<\/p>\n<\/div>\n", "quiz": null, "chart": null, "video": null}];window.__QUIZZES__={"q1": {"title": "第一節 隨堂測驗", "questions": [{"q": "下列關於「資訊科技（IT）」的敘述，何者最正確？", "options": ["只有電腦才算資訊科技", "用電子設備蒐集、處理、傳遞資訊的各種技術總稱", "專指上網看影片的技術", "只有工程師才會用到的專業技術"], "answer": 1, "explain": "IT 是「管理與處理資訊的技術總稱」，手機、悠遊卡、公車動態看板都算。它不限於電腦，也不是只有專家才會用到。"}, {"q": "ICT 比 IT 多了哪個字，代表什麼意思？", "options": ["C：Computer，代表電腦", "C：Communication，代表通訊", "C：Cloud，代表雲端", "C：Code，代表程式碼"], "answer": 1, "explain": "ICT = Information and <strong>Communication<\/strong> Technology。現代資訊科技幾乎都要透過網路與通訊傳遞，所以常用 ICT 來強調「通訊」這一環。"}, {"q": "用手機拍下黑板上的筆記，再傳到班級群組。「傳到群組」屬於資訊科技的哪個環節？", "options": ["蒐集", "處理", "傳遞", "儲存"], "answer": 2, "explain": "拍照是「蒐集」（把黑板變成影像資料），傳到群組讓別人看到是「傳遞」。如果你先用 App 把照片轉成文字，那就是「處理」。"}]}, "q2": {"title": "第二節 隨堂測驗", "questions": [{"q": "巴斯卡加法器最重要的突破是什麼？", "options": ["可以上網", "用齒輪自動進位，讓機器幫忙做加減", "可以儲存程式", "使用真空管計算"], "answer": 1, "explain": "巴斯卡（1642）用齒輪做到「轉一圈自動進位」，計算開始由機器完成。上網、內儲程式、真空管都是好幾百年後才出現的技術。"}, {"q": "巴貝奇被稱為「電腦之父」，主要原因是？", "options": ["他做出了第一台能用的電腦", "他發明了算盤", "他提出了輸入、運算、儲存、控制、輸出等類似五大單元的構想", "他創立了 IBM"], "answer": 2, "explain": "巴貝奇設計的分析機雖然沒有完成，但他的構想已經包含今天電腦的五大單元，所以被稱為「電腦之父」。"}, {"q": "被許多人視為「史上第一位程式設計師」的是誰？", "options": ["萊布尼茲", "愛達・勒芙蕾絲", "何樂禮", "馮紐曼"], "answer": 1, "explain": "愛達・勒芙蕾絲（Ada Lovelace）替巴貝奇的分析機寫下計算步驟，這就是最早的「程式」概念之一。"}]}, "q3": {"title": "第三節 隨堂測驗", "questions": [{"q": "何樂禮發明打孔卡製表機，最初是為了解決什麼問題？", "options": ["銀行算利息太慢", "美國人口普查資料統計太慢", "學生考試改考卷太慢", "工廠生產太慢"], "answer": 1, "explain": "1880 年美國人口普查用人工統計花了將近 8 年。1890 年改用打孔卡製表機後，統計時間大幅縮短。"}, {"q": "打孔卡用「有孔／沒孔」記錄資料，這個想法和現代電腦的哪個概念最像？", "options": ["用 0 和 1 兩種狀態表示資料", "用顏色表示資料", "用聲音表示資料", "用溫度表示資料"], "answer": 0, "explain": "「有孔／沒孔」是兩種狀態，正好對應電腦的二進位 1／0。電腦裡的一切資料，最後都是由這兩種狀態組成。"}, {"q": "馮紐曼架構讓電腦「換工作只要換程式，不用重新接線」，關鍵設計是？", "options": ["把程式和資料一起存在記憶體", "使用更大的螢幕", "把電腦做得更輕", "使用十進位運算"], "answer": 0, "explain": "「內儲程式」：程式和資料都用二進位存在記憶體。想做別的事就載入別的程式，不必像 ENIAC 那樣插拔電線。"}]}, "q4": {"title": "第四節 隨堂測驗", "questions": [{"q": "關於巴貝奇與馮紐曼，下列敘述何者正確？", "options": ["兩人都是「現代電腦之父」", "巴貝奇提出五大單元構想；馮紐曼提出內儲程式架構", "馮紐曼發明了算盤", "巴貝奇做出了第一台能用的個人電腦"], "answer": 1, "explain": "巴貝奇是「電腦之父」，貢獻是電腦由哪些部分組成；馮紐曼是「現代電腦之父」，貢獻是程式怎麼存放與執行。"}, {"q": "台灣第一部電腦 IBM 650 在 1962 年由哪所學校引進？", "options": ["臺灣大學", "交通大學", "成功大學", "臺灣師範大學"], "answer": 1, "explain": "1962 年交通大學引進 IBM 650，是台灣第一部電腦，開啟了台灣的電腦教育與研究。"}, {"q": "從計算工具的演進來看，下列哪個趨勢「不正確」？", "options": ["計算越來越自動化", "從只能算數學，到能處理文字、影像等各種資料", "電腦越來越依賴人工撥珠子計算", "改變工作內容越來越容易（換程式即可）"], "answer": 2, "explain": "演進方向是「越來越自動化」：從算盤要人撥珠子，到機械齒輪，再到電子電腦自動依程式執行。所以「越來越依賴人工」是錯的。"}]}};</script>
+
+<!-- 進度條 -->
+<div id="progress-bar" style="width:0%"></div>
+
+<!-- 頂部導覽列 -->
+<div id="topbar">
+  <a href="index.html" style="color:#94a3b8;text-decoration:none;font-size:.8rem;white-space:nowrap">🏠 首頁</a>
+  <span class="tb-title" id="tb-chapter">資訊科技 7 年級第二學期</span>
+  <span class="tb-counter" id="tb-counter">1 / 19</span>
+  <button id="btn-toc" onclick="toggleToc()">目錄 ☰</button>
+</div>
+
+<!-- 投影片主體 -->
+<div id="slide-wrap">
+  <div id="slide-frame" class="bg-navy"></div>
+</div>
+
+<!-- 底部導覽 -->
+<div id="nav-bar">
+  <button class="nav-btn" id="btn-prev" onclick="prevSlide()" disabled>← 上一頁</button>
+  <div id="slide-dots"></div>
+  <button class="nav-btn" id="btn-next" onclick="nextSlide()">下一頁 →</button>
+</div>
+
+<!-- TOC 側邊欄 -->
+<div id="toc">
+  <h3>📑 課程目錄</h3>
+  <div id="toc-list"></div>
+</div>
+
+<!-- 測驗 Modal -->
+<div id="quiz-overlay">
+  <div id="quiz-box">
+    <div id="quiz-header">
+      <h3 id="quiz-title">測驗</h3>
+      <span class="qh-score" id="quiz-score-preview"></span>
+    </div>
+    <div id="quiz-body"></div>
+    <div id="quiz-footer">
+      <span class="qf-score" id="quiz-result"></span>
+      <div style="display:flex;gap:10px">
+        <button id="btn-submit-quiz" onclick="submitQuiz()">送出答案</button>
+        <button id="btn-close-quiz" onclick="closeQuiz()">繼續學習 →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+//  從 Jinja2 模板取得 Flask 傳入的資料
+// ════════════════════════════════════════════════════════════
+const TOTAL_SLIDES = 19;
+const CHAPTERS_DATA = [{"name": "\u5c01\u9762", "start": 1}, {"name": "\u7b2c\u4e00\u7bc0\uff1a\u8cc7\u8a0a\u79d1\u6280\u5c31\u5728\u8eab\u908a", "start": 2}, {"name": "\u7b2c\u4e8c\u7bc0\uff1a\u6a5f\u68b0\u8a08\u7b97\u5de5\u5177", "start": 6}, {"name": "\u7b2c\u4e09\u7bc0\uff1a\u8cc7\u6599\u81ea\u52d5\u5316\u8207\u73fe\u4ee3\u96fb\u8166", "start": 11}, {"name": "\u7b2c\u56db\u7bc0\uff1a\u53f0\u7063\u7684\u96fb\u8166\u6545\u4e8b", "start": 15}, {"name": "\u5206\u7d44\u5be6\u4f5c", "start": 18}];
+
+// ════════════════════════════════════════════════════════════
+//  全域狀態
+// ════════════════════════════════════════════════════════════
+let slides = [];
+let quizzes = {};
+let cur = 0;
+let answered = {};
+let tocVisible = true;
+const chartInstances = {};
+
+// ════════════════════════════════════════════════════════════
+//  初始化：從 Flask API 取得資料
+// ════════════════════════════════════════════════════════════
+async function init() {
+  try {
+    const [slidesRes, quizzesRes] = await Promise.all([
+      Promise.resolve({json:()=>window.__SLIDES__}),
+      Promise.resolve({json:()=>window.__QUIZZES__})
+    ]);
+    slides = await slidesRes.json();
+    quizzes = await quizzesRes.json();
+    buildToc();
+    buildDots();
+    goTo(0);
+  } catch (e) {
+    console.error('資料載入失敗：', e);
+    document.getElementById('slide-frame').innerHTML =
+      "<div style='color:red;padding:20px'>❌ 請確認 Flask 伺服器已啟動！<br><code>python app.py</code></div>";
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+//  建立目錄（TOC）
+// ════════════════════════════════════════════════════════════
+function buildToc() {
+  const list = document.getElementById('toc-list');
+  let lastChapter = '';
+  slides.forEach((s, i) => {
+    if (s.chapter !== lastChapter) {
+      const ch = document.createElement('div');
+      ch.className = 'toc-chapter';
+      ch.textContent = s.chapter;
+      list.appendChild(ch);
+      lastChapter = s.chapter;
+    }
+    const item = document.createElement('div');
+    item.className = 'toc-item';
+    item.id = `toc-${i}`;
+    item.textContent = `${s.id}. ${s.title}`;
+    item.onclick = () => goTo(i);
+    list.appendChild(item);
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+//  建立點狀導覽
+// ════════════════════════════════════════════════════════════
+function buildDots() {
+  const wrap = document.getElementById('slide-dots');
+  const step = Math.max(1, Math.floor(slides.length / 15));
+  slides.forEach((s, i) => {
+    if (i % step !== 0 && i !== slides.length - 1) return;
+    const d = document.createElement('div');
+    d.className = 'dot';
+    d.id = `dot-${i}`;
+    d.title = s.title;
+    d.onclick = () => goTo(i);
+    wrap.appendChild(d);
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+//  前往特定投影片
+// ════════════════════════════════════════════════════════════
+function goTo(idx) {
+  if (idx < 0 || idx >= slides.length) return;
+  cur = idx;
+  const s = slides[cur];
+  const frame = document.getElementById('slide-frame');
+  frame.className = '';
+  frame.classList.add('bg-' + s.bg);
+  frame.style.opacity = '0';
+  frame.innerHTML = s.html;
+  setTimeout(() => { frame.style.opacity = '1'; }, 30);
+  frame.scrollTop = 0;
+  if (s.chart) setTimeout(() => renderChart(s.chart), 80);
+  if (s.video) setTimeout(() => renderVideo(s.id, s.video), 80);
+  updateNav();
+  updateToc();
+  updateProgress();
+}
+
+// ════════════════════════════════════════════════════════════
+//  導覽：下一頁（有測驗時先觸發測驗）
+// ════════════════════════════════════════════════════════════
+function nextSlide() {
+  const s = slides[cur];
+  if (s.quiz && !answered[s.quiz]) {
+    showQuiz(s.quiz);
+  } else {
+    goTo(cur + 1);
+  }
+}
+function prevSlide() { goTo(cur - 1); }
+
+// ════════════════════════════════════════════════════════════
+//  更新導覽列、進度條、TOC
+// ════════════════════════════════════════════════════════════
+function updateNav() {
+  document.getElementById('btn-prev').disabled = cur === 0;
+  const isLast = cur === slides.length - 1;
+  const hasUnansweredQuiz = slides[cur].quiz && !answered[slides[cur].quiz];
+  document.getElementById('btn-next').disabled = isLast && !hasUnansweredQuiz;
+  document.getElementById('tb-chapter').textContent = slides[cur].chapter + '：' + slides[cur].title;
+  document.getElementById('tb-counter').textContent = `${cur + 1} / ${slides.length}`;
+  document.querySelectorAll('.dot').forEach(d => {
+    d.classList.remove('active');
+    const i = parseInt(d.id.replace('dot-', ''));
+    if (cur === i) d.classList.add('active');
+    else if (cur > i) d.classList.add('done');
+    else d.classList.remove('done');
+  });
+}
+
+function updateProgress() {
+  const pct = ((cur + 1) / slides.length) * 100;
+  document.getElementById('progress-bar').style.width = pct + '%';
+}
+
+function updateToc() {
+  document.querySelectorAll('.toc-item').forEach((el, i) => {
+    el.classList.remove('active', 'done');
+    if (i === cur) { el.classList.add('active'); el.scrollIntoView({block:'nearest'}); }
+    else if (i < cur) el.classList.add('done');
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+//  切換 TOC 顯示
+// ════════════════════════════════════════════════════════════
+function toggleToc() {
+  tocVisible = !tocVisible;
+  document.getElementById('toc').classList.toggle('hidden', !tocVisible);
+  document.getElementById('slide-wrap').classList.toggle('toc-hidden', !tocVisible);
+  document.getElementById('nav-bar').classList.toggle('toc-hidden', !tocVisible);
+}
+
+// ════════════════════════════════════════════════════════════
+//  鍵盤快捷鍵
+// ════════════════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === 'ArrowRight' || e.key === ' ') nextSlide();
+  if (e.key === 'ArrowLeft') prevSlide();
+});
+
+// ════════════════════════════════════════════════════════════
+//  影片渲染（YouTube 嵌入 / 搜尋按鈕 / 兩者兼具）
+//  嵌入使用 youtube-nocookie.com（不追蹤、不推薦其他影片、無個人化廣告）
+//  參數 rel=0（結束不推薦別家頻道）、modestbranding=1（隱藏 YT logo）
+// ════════════════════════════════════════════════════════════
+function _ytEmbedHtml(vid, title) {
+  // 使用 youtube-nocookie.com — YouTube 官方「隱私強化」網域，更乾淨
+  return `
+    <div class="video-embed">
+      <iframe src="https://www.youtube-nocookie.com/embed/${vid}?rel=0&modestbranding=1&iv_load_policy=3&fs=1"
+        allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        loading="lazy"></iframe>
+    </div>
+    <p style="text-align:center;font-size:.72rem;color:rgba(255,255,255,.55);margin-top:6px">▶ ${title}</p>`;
+}
+function _ytSearchHtml(query, title, desc) {
+  const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+  return `
+    <a href="${url}" target="_blank" class="video-search-btn">
+      <span class="yt-icon">▶️</span>
+      <span>
+        <strong>${title}</strong><br>
+        <small style="font-weight:400;opacity:.8">${desc}</small>
+      </span>
+    </a>`;
+}
+
+function renderVideo(slideId, video) {
+  const el = document.getElementById(`video-section-${slideId}`);
+  if (!el) return;
+  if (video.type === 'youtube') {
+    el.innerHTML = _ytEmbedHtml(video.id, video.title);
+  } else if (video.type === 'both') {
+    // 嵌入播放器 + 底下附「找不到？搜尋更多」備援
+    el.innerHTML = `
+      ${_ytEmbedHtml(video.id, video.title)}
+      <div style="margin-top:10px;">
+        ${_ytSearchHtml(video.query, video.search_title || '想看更多相關影片', video.desc || '在 YouTube 搜尋同主題其他教學')}
+      </div>`;
+  } else {
+    el.innerHTML = _ytSearchHtml(video.query, video.title, video.desc);
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+//  圖表渲染（Chart.js，防止重複建立）
+// ════════════════════════════════════════════════════════════
+function renderChart(type) {
+  if (type === 'formats') {
+    const el = document.getElementById('chart-formats');
+    if (!el || chartInstances['formats']) return;
+    chartInstances['formats'] = new Chart(el, {
+      type: 'bar',
+      data: {
+        labels: ['JPEG（照片）', 'PNG（圖示）', 'PNG（截圖）', 'SVG（Logo）'],
+        datasets: [{
+          label: '典型檔案大小（KB）',
+          data: [150, 400, 1200, 8],
+          backgroundColor: ['#3b82f6', '#22c55e', '#f59e0b', '#a855f7'],
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.raw} KB` } }
+        },
+        scales: {
+          y: {
+            type: 'logarithmic',
+            title: { display: true, text: '檔案大小 KB（對數刻度）', color:'#6b7280', font:{size:10} },
+            ticks: { color:'#6b7280', font:{size:10}, callback: v => v + ' KB' }
+          },
+          x: { ticks: { color:'#374151', font:{size:11} }, grid:{display:false} }
+        }
+      }
+    });
+  }
+
+  if (type === 'ai_tools') {
+    const el = document.getElementById('chart-ai-tools');
+    if (!el || chartInstances['ai_tools']) return;
+    chartInstances['ai_tools'] = new Chart(el, {
+      type: 'bar',
+      data: {
+        labels: ['ChatGPT GPT-4o', 'Canva AI', 'Midjourney', 'Adobe Firefly'],
+        datasets: [
+          {
+            label: '圖像品質',
+            data: [4, 3, 5, 4],
+            backgroundColor: 'rgba(107,63,160,.7)',
+            borderRadius: 4
+          },
+          {
+            label: '操作難易',
+            data: [5, 5, 2, 4],
+            backgroundColor: 'rgba(13,148,136,.7)',
+            borderRadius: 4
+          },
+          {
+            label: '授權安全',
+            data: [3, 4, 3, 5],
+            backgroundColor: 'rgba(245,158,11,.7)',
+            borderRadius: 4
+          }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { font:{size:10}, padding:8 } },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}：${'⭐'.repeat(ctx.raw)}` } }
+        },
+        scales: {
+          y: {
+            min: 0, max: 5,
+            ticks: { color:'#6b7280', font:{size:10}, stepSize: 1, callback: v => v + '⭐' }
+          },
+          x: { ticks: { color:'#374151', font:{size:10} }, grid:{display:false} }
+        }
+      }
+    });
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+//  測驗功能
+// ════════════════════════════════════════════════════════════
+let curQuizId = null;
+let quizUserAnswers = {};
+
+function showQuiz(qId) {
+  curQuizId = qId;
+  quizUserAnswers = {};
+  const q = quizzes[qId];
+  document.getElementById('quiz-title').textContent = q.title;
+  document.getElementById('quiz-score-preview').textContent = q.questions.length + ' 題';
+  document.getElementById('quiz-result').textContent = '';
+  document.getElementById('btn-submit-quiz').style.display = '';
+  document.getElementById('btn-close-quiz').style.display = 'none';
+
+  const body = document.getElementById('quiz-body');
+  body.innerHTML = '';
+  q.questions.forEach((question, qi) => {
+    const div = document.createElement('div');
+    div.className = 'quiz-q';
+    div.innerHTML = `<div class="q-text">${qi+1}. ${question.q}</div>
+      <div class="q-options" id="opts-${qi}">
+        ${question.options.map((opt, oi) =>
+          `<div class="q-opt" id="opt-${qi}-${oi}" onclick="selectOpt(${qi},${oi})">${opt}</div>`
+        ).join('')}
+      </div>`;
+    body.appendChild(div);
+  });
+  document.getElementById('quiz-overlay').classList.add('show');
+}
+
+function selectOpt(qi, oi) {
+  quizUserAnswers[qi] = oi;
+  const q = quizzes[curQuizId];
+  for (let o = 0; o < q.questions[qi].options.length; o++) {
+    document.getElementById(`opt-${qi}-${o}`).classList.toggle('selected', o === oi);
+  }
+}
+
+function submitQuiz() {
+  const q = quizzes[curQuizId];
+  let correct = 0;
+  q.questions.forEach((question, qi) => {
+    const chosen = quizUserAnswers[qi];
+    const opts = document.getElementById(`opts-${qi}`);
+    for (let o = 0; o < question.options.length; o++) {
+      const el = document.getElementById(`opt-${qi}-${o}`);
+      el.onclick = null;
+      el.classList.remove('selected');
+      if (o === question.answer) el.classList.add('correct');
+      else if (o === chosen && chosen !== question.answer) el.classList.add('wrong');
+    }
+    if (!opts.querySelector('.q-exp')) {
+      const exp = document.createElement('div');
+      exp.className = 'q-exp';
+      exp.innerHTML = '💡 ' + question.explain;   // 解析內容中的 <strong> 等標記
+      opts.after(exp);
+    }
+    if (chosen === question.answer) correct++;
+  });
+  const pct = Math.round((correct / q.questions.length) * 100);
+  document.getElementById('quiz-result').textContent = `得分：${correct}/${q.questions.length}（${pct}%）`;
+  document.getElementById('btn-submit-quiz').style.display = 'none';
+  document.getElementById('btn-close-quiz').style.display = 'inline-block';
+  answered[curQuizId] = true;
+}
+
+function closeQuiz() {
+  document.getElementById('quiz-overlay').classList.remove('show');
+  goTo(cur + 1);
+}
+
+// ════════════════════════════════════════════════════════════
+//  啟動
+// ════════════════════════════════════════════════════════════
+init();
+</script>
+</body>
+</html>

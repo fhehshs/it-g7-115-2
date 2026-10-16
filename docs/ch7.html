@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>資訊科技 7 年級第二學期 — 互動教學</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* ═══════════════════════════════════════
+   CSS 變數（全站顏色主題）
+   ══════════════════════════════════════ */
+:root {
+  --navy:#1E3A5F; --teal:#0D9488; --sage:#6B8F8F;
+  --purple:#6B3FA0; --gold:#F59E0B; --light:#F1F5F9; --white:#fff;
+  --text:#111827; --muted:#374151;
+  --radius:12px; --shadow:0 4px 20px rgba(0,0,0,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI','Noto Sans TC',sans-serif;background:#0f172a;color:var(--text);overflow:hidden;height:100vh}
+
+/* ═══ 進度條 ═══ */
+#progress-bar{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--purple),var(--teal),var(--gold));transition:width .4s;z-index:200}
+
+/* ═══ 頂部導覽 ═══ */
+#topbar{position:fixed;top:3px;left:0;right:0;height:48px;background:rgba(15,23,42,.92);backdrop-filter:blur(8px);display:flex;align-items:center;padding:0 16px;gap:12px;z-index:100;border-bottom:1px solid rgba(255,255,255,.08)}
+#topbar .tb-title{color:#fff;font-size:.85rem;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#topbar .tb-counter{color:var(--gold);font-size:.8rem;white-space:nowrap}
+#btn-toc{background:none;border:1px solid rgba(255,255,255,.2);color:#fff;padding:4px 10px;border-radius:6px;font-size:.75rem;cursor:pointer}
+#btn-toc:hover{background:rgba(255,255,255,.1)}
+
+/* ═══ 投影片容器 ═══ */
+#slide-wrap{position:fixed;top:51px;left:280px;right:0;bottom:64px;overflow:hidden;transition:left .3s}
+#slide-wrap.toc-hidden{left:0}
+#slide-frame{width:100%;height:100%;padding:20px 24px;overflow-y:auto;transition:opacity .2s}
+
+/* ═══ 投影片背景 ═══ */
+.bg-navy{background:linear-gradient(135deg,#1E3A5F 0%,#0f2340 100%)}
+.bg-teal{background:linear-gradient(135deg,#0D9488 0%,#065f46 100%)}
+.bg-sage{background:linear-gradient(135deg,#6B8F8F 0%,#4a6b6b 100%)}
+.bg-purple{background:linear-gradient(135deg,#6B3FA0 0%,#3b1f6b 100%)}
+.bg-white{background:#f8fafc}
+
+/* ═══ 底部導覽按鈕 ═══ */
+#nav-bar{position:fixed;bottom:0;left:280px;right:0;height:64px;background:rgba(15,23,42,.95);display:flex;align-items:center;justify-content:center;gap:16px;transition:left .3s;z-index:100}
+#nav-bar.toc-hidden{left:0}
+.nav-btn{background:var(--purple);color:#fff;border:none;padding:10px 28px;border-radius:24px;font-size:.9rem;cursor:pointer;font-weight:600;transition:all .2s}
+.nav-btn:hover{background:#5a3290;transform:translateY(-1px)}
+.nav-btn:disabled{background:#334155;cursor:not-allowed;transform:none}
+#slide-dots{display:flex;gap:6px;align-items:center;max-width:300px;flex-wrap:wrap;justify-content:center}
+.dot{width:8px;height:8px;border-radius:50%;background:#334155;cursor:pointer;transition:all .2s}
+.dot.active{background:var(--gold);transform:scale(1.3)}
+.dot.done{background:var(--teal)}
+
+/* ═══ TOC 側邊欄 ═══ */
+#toc{position:fixed;top:51px;left:0;width:280px;bottom:0;background:#0f172a;border-right:1px solid rgba(255,255,255,.08);overflow-y:auto;z-index:50;transition:transform .3s}
+#toc.hidden{transform:translateX(-100%)}
+#toc h3{padding:14px 16px 10px;color:var(--gold);font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid rgba(255,255,255,.06)}
+.toc-item{padding:7px 16px;font-size:.78rem;color:#cbd5e1;cursor:pointer;border-left:3px solid transparent;transition:all .15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.toc-item:hover{color:#fff;background:rgba(255,255,255,.05)}
+.toc-item.active{color:var(--gold);border-left-color:var(--gold);background:rgba(245,158,11,.08)}
+.toc-item.done{color:var(--teal)}
+.toc-chapter{padding:8px 16px 4px;font-size:.7rem;color:#475569;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-top:4px}
+
+/* ═══ 封面樣式 ═══ */
+.cover-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:calc(100vh - 130px);text-align:center;padding:20px}
+.cover-badge{background:rgba(107,63,160,.3);color:#c4b5fd;padding:6px 18px;border-radius:20px;font-size:.8rem;letter-spacing:.08em;margin-bottom:20px;border:1px solid rgba(107,63,160,.4)}
+.cover-title{font-size:clamp(1.8rem,4vw,3rem);font-weight:800;color:#fff;line-height:1.2;margin-bottom:12px}
+.cover-sub{font-size:clamp(.9rem,1.5vw,1.1rem);color:#94a3b8;margin-bottom:24px;max-width:500px}
+.cover-tags{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-bottom:20px}
+.tag{background:rgba(255,255,255,.1);color:#cbd5e1;padding:5px 14px;border-radius:14px;font-size:.78rem;border:1px solid rgba(255,255,255,.15)}
+.cover-meta{font-size:.75rem;color:#475569}
+
+/* ═══ 投影片通用 ═══ */
+.slide-inner{padding:8px 4px}
+.slide-title{font-size:clamp(1.1rem,2.2vw,1.5rem);font-weight:700;margin-bottom:12px;color:var(--text)}
+.slide-desc{font-size:.88rem;color:var(--muted);margin-bottom:14px}
+.slide-note{font-size:.82rem;color:var(--muted);margin-top:12px;padding:8px 12px;background:rgba(0,0,0,.05);border-radius:8px}
+.tip-box{background:linear-gradient(135deg,rgba(107,63,160,.1),rgba(30,58,95,.1));border:1px solid rgba(107,63,160,.25);border-radius:10px;padding:12px 16px;font-size:.83rem;color:var(--text);margin-top:12px;line-height:1.6}
+
+/* ═══ 卡片格 ═══ */
+.card-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px}
+.card-grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.info-card{background:rgba(255,255,255,.12);border-radius:10px;padding:12px;text-align:center;border:1px solid rgba(255,255,255,.15)}
+.card-icon{font-size:1.6rem;margin-bottom:6px}
+.card-label{font-size:.8rem;font-weight:700;color:#fff;margin-bottom:4px}
+.card-desc{font-size:.72rem;color:rgba(255,255,255,.92);line-height:1.4}
+
+/* ═══ 位元視覺 ═══ */
+.bit-demo{background:rgba(255,255,255,.06);border-radius:12px;padding:14px}
+.bit-box{padding:8px 16px;border-radius:10px;font-weight:700;font-size:.9rem;text-align:center}
+.bit-off{background:rgba(239,68,68,.25);border:2px solid rgba(239,68,68,.5);color:#fca5a5}
+.bit-on{background:rgba(34,197,94,.25);border:2px solid rgba(34,197,94,.5);color:#86efac}
+
+/* ═══ 平台表格 ═══ */
+.platform-table{border-radius:10px;overflow:hidden;border:1px solid #e2e8f0;margin-bottom:10px}
+.pt-header{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;background:var(--navy);color:#fff;padding:8px 12px;font-size:.75rem;font-weight:600;gap:8px}
+.pt-row{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;padding:8px 12px;font-size:.78rem;gap:8px;border-top:1px solid #f1f5f9;align-items:center}
+.pt-row:nth-child(even){background:#f8fafc}
+.pt-name{font-weight:600;color:var(--navy)}
+
+/* ═══ 四層架構 ═══ */
+.layer-stack{display:flex;flex-direction:column;gap:2px;margin:8px 0}
+.layer{display:flex;align-items:center;gap:12px;padding:10px 16px;border-radius:10px;border:1px solid rgba(255,255,255,.15)}
+.layer-hw{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.6);border-width:2px}
+.layer-os{background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.6);border-width:2px}
+.layer-app{background:rgba(13,148,136,.12);border-color:rgba(13,148,136,.6);border-width:2px}
+.layer-user{background:rgba(139,92,246,.12);border-color:rgba(139,92,246,.6);border-width:2px}
+.layer-num{width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,.18);color:#1e293b;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0}
+.layer-name{font-weight:700;font-size:.88rem;color:#1e293b;margin-bottom:2px}
+.layer-detail{font-size:.75rem;color:#475569}
+.layer-arrow{text-align:center;color:#64748b;font-size:.9rem;margin:-4px 0}
+
+/* ═══ 儲存單位 ═══ */
+.units-grid{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+.unit-row{display:flex;align-items:center;gap:12px;padding:7px 12px;border-radius:8px;background:#f1f5f9;border:1px solid #e2e8f0}
+.unit-small{border-color:rgba(59,130,246,.5);background:rgba(59,130,246,.08)}
+.unit-large{border-color:rgba(239,68,68,.5);background:rgba(239,68,68,.08)}
+.unit-name{font-size:.82rem;font-weight:700;color:#1e293b;min-width:150px}
+.unit-eq{font-size:.78rem;color:#475569}
+
+/* ═══ 資料表格 ═══ */
+.info-table{width:100%;border-collapse:collapse;font-size:.8rem;border-radius:10px;overflow:hidden;border:1px solid #e2e8f0}
+.info-table th,.info-table td{padding:8px 12px;text-align:left;border-bottom:1px solid #f1f5f9}
+.table-header{background:var(--navy);color:#fff}
+.table-header th{color:#fff;font-weight:600;font-size:.78rem;padding:9px 12px}
+.tr-highlight{background:rgba(13,148,136,.08)}
+.info-table tr:last-child td{border-bottom:none}
+.td-center{text-align:center}
+
+/* ═══ 功能卡片 ═══ */
+.func-card{display:flex;align-items:center;gap:10px;background:#f8fafc;border-radius:10px;padding:10px 12px;border:1px solid #e2e8f0}
+.fc-num{width:28px;height:28px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0}
+.fc-title{font-size:.82rem;font-weight:700;color:var(--navy);margin-bottom:3px}
+.fc-desc{font-size:.75rem;color:var(--muted);line-height:1.4}
+
+/* ═══ Fact Box ═══ */
+.fact-box{background:rgba(255,255,255,.08);border-radius:10px;padding:12px;margin-bottom:10px}
+.fact-box p{font-size:.8rem;color:rgba(255,255,255,.95);margin-bottom:6px;line-height:1.5}
+
+/* ═══ 圖表 ═══ */
+.chart-wrap-full{width:100%;margin-bottom:10px}
+
+/* ═══ 作業 ═══ */
+.task-single{background:rgba(255,255,255,.08);border-radius:10px;padding:14px 16px;border:1px solid rgba(255,255,255,.15);margin-bottom:14px}
+.task-title{font-size:.82rem;font-weight:700;color:var(--gold);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.1)}
+.task-item{font-size:.78rem;color:rgba(255,255,255,.8);margin-bottom:7px;padding-left:4px;line-height:1.4}
+.submit-box{display:flex;align-items:center;gap:14px;background:rgba(13,148,136,.2);border:1px solid rgba(13,148,136,.4);border-radius:12px;padding:14px 16px}
+.submit-icon{font-size:2rem;flex-shrink:0}
+.submit-title{font-size:.88rem;font-weight:700;color:#fff;margin-bottom:4px}
+.submit-desc{font-size:.78rem;color:rgba(255,255,255,.8);line-height:1.5}
+
+/* ═══ 影片區塊 ═══ */
+.video-section{margin:10px 0}
+.video-embed{border-radius:12px;overflow:hidden;background:#000;aspect-ratio:16/9;width:100%;max-width:560px;margin:0 auto}
+.video-embed iframe{width:100%;height:100%;border:none;display:block}
+.video-search-btn{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;text-decoration:none;padding:12px 20px;border-radius:12px;font-size:.85rem;font-weight:600;transition:all .2s;width:fit-content;margin:0 auto}
+.video-search-btn:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(220,38,38,.4)}
+.video-search-btn .yt-icon{font-size:1.2rem}
+
+/* ═══ 測驗 Modal ═══ */
+#quiz-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:300;display:none;align-items:center;justify-content:center;padding:20px}
+#quiz-overlay.show{display:flex}
+#quiz-box{background:#fff;border-radius:16px;max-width:600px;width:100%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+#quiz-header{background:var(--purple);color:#fff;padding:16px 20px;border-radius:16px 16px 0 0;display:flex;justify-content:space-between;align-items:center}
+#quiz-header h3{font-size:.95rem;font-weight:700}
+#quiz-header .qh-score{background:rgba(255,255,255,.2);padding:4px 12px;border-radius:12px;font-size:.78rem}
+#quiz-body{padding:16px 20px;overflow-y:auto;flex:1}
+.quiz-q{margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid #f1f5f9}
+.quiz-q:last-child{border-bottom:none}
+.q-text{font-size:.9rem;font-weight:600;color:var(--navy);margin-bottom:10px;line-height:1.4}
+.q-options{display:flex;flex-direction:column;gap:7px}
+.q-opt{padding:9px 14px;border:2px solid #e2e8f0;border-radius:10px;cursor:pointer;font-size:.82rem;transition:all .15s;line-height:1.3}
+.q-opt:hover{border-color:var(--purple);background:#faf5ff}
+.q-opt.selected{border-color:var(--navy);background:rgba(30,58,95,.05)}
+.q-opt.correct{border-color:#10b981;background:#f0fdf4;color:#065f46}
+.q-opt.wrong{border-color:#ef4444;background:#fef2f2;color:#991b1b}
+.q-exp{font-size:.78rem;color:#374151;background:#f8fafc;padding:8px 12px;border-radius:8px;margin-top:8px;border-left:3px solid var(--purple);line-height:1.5}
+#quiz-footer{padding:14px 20px;border-top:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;background:#fff;border-radius:0 0 16px 16px}
+#quiz-footer .qf-score{font-size:.88rem;font-weight:600;color:var(--navy)}
+#btn-submit-quiz,#btn-close-quiz{padding:8px 20px;border-radius:10px;border:none;cursor:pointer;font-size:.85rem;font-weight:600;transition:all .15s}
+#btn-submit-quiz{background:var(--navy);color:#fff}
+#btn-submit-quiz:hover{background:#0f2340}
+#btn-close-quiz{background:var(--purple);color:#fff;display:none}
+#btn-close-quiz:hover{background:#5a3290}
+</style>
+</head>
+<body>
+<script>window.__SLIDES__=[{"id": 1, "title": "流程圖符號與繪製", "chapter": "封面", "bg": "navy", "html": "\n<div style='text-align:center;padding:24px 20px;'>\n  <div style='font-size:66px;margin-bottom:14px;'>🔀<\/div>\n  <h1 style='font-size:2.6rem;font-weight:900;color:#fff;margin-bottom:10px;'>流程圖符號與繪製<\/h1>\n  <h2 style='font-size:1.25rem;font-weight:400;color:#93c5fd;margin-bottom:24px;'>Flowchart · Drawing Your Algorithm<\/h2>\n  <div style='display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-bottom:22px;'><span style='background:rgba(255,255,255,0.15);color:#e0f2fe;padding:8px 18px;border-radius:20px;'>⬭ 開始結束<\/span><span style='background:rgba(255,255,255,0.15);color:#e0f2fe;padding:8px 18px;border-radius:20px;'>▭ 處理<\/span><span style='background:rgba(255,255,255,0.15);color:#e0f2fe;padding:8px 18px;border-radius:20px;'>◇ 決策<\/span><span style='background:rgba(255,255,255,0.15);color:#e0f2fe;padding:8px 18px;border-radius:20px;'>🍳 蛋炒飯流程圖<\/span><\/div>\n  <p style='color:#bfdbfe;font-size:1.05rem;'>七年級第二學期 ｜ 第 8–9 週<\/p>\n<\/div>\n", "quiz": null, "chart": null, "video": null}, {"id": 2, "title": "文字 vs 圖", "chapter": "第一節：為什麼要畫流程圖", "bg": "white", "html": "<h2 class='slide-title'>🖼️ 為什麼要把演算法「畫」出來？<\/h2>\n<div style='display:grid;grid-template-columns:1.2fr 1fr;gap:12px;'><div style='background:#fef2f2;padding:14px;border-radius:10px;'><div style='font-size:1.8rem;'>📝<\/div><strong style='color:#991b1b;font-size:.9rem;'>用文字寫<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>「先把油倒進鍋中，然後看油熱了沒有，如果還沒熱就繼續加熱，熱了的話就開中火加入蛋，接著看蛋凝固了沒有，沒有就快速攪拌……」<br><br>😵 很長、很難看出「判斷」和「重複」在哪裡。<\/div><\/div><div style='background:#f0fdf4;padding:14px;border-radius:10px;'><div style='font-size:1.8rem;'>🔀<\/div><strong style='color:#166534;font-size:.9rem;'>用流程圖畫<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>🔹 一眼看出步驟順序<br>🔹 「判斷」用菱形，分岔很清楚<br>🔹 「重複」用箭頭繞回去<br>🔹 寫程式前先畫好，比較不會出錯<\/div><\/div><\/div>\n<div style='background:#f1f5f9;border-radius:10px;padding:12px 16px;margin-bottom:14px;border-left:4px solid #0d9488;'><p style='margin:0;color:#0f172a;font-size:.93rem;line-height:1.7;'>📖 <strong>流程圖（Flowchart）<\/strong>：用標準的圖形符號和箭頭，把演算法的步驟和流程畫出來。<\/p><\/div>\n", "quiz": null, "chart": null, "video": null}, {"id": 3, "title": "生活中的流程圖", "chapter": "第一節：為什麼要畫流程圖", "bg": "white", "html": "<h2 class='slide-title'>🏥 生活中的流程圖<\/h2>\n<div style='display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;'><div style='background:#eff6ff;padding:14px;border-radius:10px;text-align:center;'><div style='font-size:1.8rem;'>🏥<\/div><strong style='color:#1e40af;font-size:.9rem;'>醫院看診流程<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>掛號 → 候診 → 看診 → 批價 → 領藥。醫院牆上常貼著這種流程指示。<\/div><\/div><div style='background:#f0fdf4;padding:14px;border-radius:10px;text-align:center;'><div style='font-size:1.8rem;'>🚨<\/div><strong style='color:#166534;font-size:.9rem;'>防災疏散圖<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>地震發生 → 是否在室內？→ 趴下、掩護、穩住 → 震後依路線疏散<\/div><\/div><div style='background:#fefce8;padding:14px;border-radius:10px;text-align:center;'><div style='font-size:1.8rem;'>🔌<\/div><strong style='color:#854d0e;font-size:.9rem;'>電器故障排除<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>說明書常見：「無法開機？→ 插頭有插好嗎？→ 是 → 檢查保險絲」<\/div><\/div><\/div>\n<div style='background:#eff6ff;padding:11px 16px;border-radius:8px;border-left:4px solid #2563eb;'><p style='color:#374151;font-size:.88rem;margin:0;line-height:1.7;'>💬 💬 找找看：學校或捷運站有沒有貼著用箭頭表示步驟的海報？那就是生活中的流程圖。<\/p><\/div>\n", "quiz": null, "chart": null, "video": null}, {"id": 4, "title": "流程的三種基本走法", "chapter": "第一節：為什麼要畫流程圖", "bg": "white", "html": "<h2 class='slide-title'>🛤️ 流程的三種基本走法（預告）<\/h2>\n<div style='display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;'><div style='background:#eff6ff;padding:14px;border-radius:10px;text-align:center;'><div style='font-size:1.8rem;'>⬇️<\/div><strong style='color:#1e40af;font-size:.9rem;'>循序：一路往下<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>步驟一個接一個，<strong>由上而下<\/strong>依序執行<\/div><\/div><div style='background:#fefce8;padding:14px;border-radius:10px;text-align:center;'><div style='font-size:1.8rem;'>🔀<\/div><strong style='color:#854d0e;font-size:.9rem;'>選擇：遇到岔路<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>依條件判斷「是／否」，<strong>走不同的路<\/strong><\/div><\/div><div style='background:#f5f3ff;padding:14px;border-radius:10px;text-align:center;'><div style='font-size:1.8rem;'>🔁<\/div><strong style='color:#5b21b6;font-size:.9rem;'>重複：繞回去<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>條件還沒達成，就<strong>回到前面<\/strong>再做一次<\/div><\/div><\/div>\n<div style='background:#fefce8;padding:11px 16px;border-radius:8px;border-left:4px solid #f59e0b;'><p style='color:#374151;font-size:.88rem;margin:0;line-height:1.7;'> 🔑 任何演算法，都可以用這三種走法組合出來。第 10 週會正式學「結構化程式設計」。<\/p><\/div>\n", "quiz": null, "chart": null, "video": null}, {"id": 5, "title": "第一節 隨堂測驗", "chapter": "第一節：為什麼要畫流程圖", "bg": "purple", "quiz": "q1", "html": "\n<div style='text-align:center;padding:44px 20px;'>\n  <div style='font-size:54px;margin-bottom:16px;'>📝<\/div>\n  <h1 style='font-size:2rem;color:#fff;margin-bottom:10px;'>第一節 隨堂測驗<\/h1>\n  <p style='color:#e9d5ff;font-size:1rem;'>流程圖的用途 ｜ 3 題<\/p>\n  <p style='color:#c4b5fd;font-size:.85rem;margin-top:18px;'>按「下一頁 →」開始作答<\/p>\n<\/div>\n", "chart": null, "video": null}, {"id": 6, "title": "流程圖符號一覽", "chapter": "第二節：流程圖符號", "bg": "white", "html": "<h2 class='slide-title'>🔣 流程圖的符號與意義<\/h2>\n<div style='display:flex;flex-direction:column;gap:8px;margin-bottom:12px;'><div style='display:grid;grid-template-columns:280px 1fr;align-items:center;gap:14px;background:#f8fafc;border-radius:10px;padding:8px 12px;'><div style='display:flex;justify-content:center;'><div style='border-radius:999px;background:#1e3a5f;color:#fff;width:150px;padding:9px 14px;text-align:center;font-size:.8rem;font-weight:600;line-height:1.4;'>開始／結束<\/div><\/div><div style='font-size:.85rem;color:#334155;'><strong>開始／結束<\/strong>：流程的起點與終點（橢圓形）<\/div><\/div><div style='display:grid;grid-template-columns:280px 1fr;align-items:center;gap:14px;background:#f8fafc;border-radius:10px;padding:8px 12px;'><div style='display:flex;justify-content:center;'><div style='border-radius:4px;background:#dbeafe;color:#1e3a8a;width:150px;padding:9px 14px;text-align:center;font-size:.8rem;font-weight:600;line-height:1.4;'>處理<\/div><\/div><div style='font-size:.85rem;color:#334155;'><strong>處理<\/strong>：執行一項工作、計算（矩形）<\/div><\/div><div style='display:grid;grid-template-columns:280px 1fr;align-items:center;gap:14px;background:#f8fafc;border-radius:10px;padding:8px 12px;'><div style='display:flex;justify-content:center;'><div style='clip-path:polygon(10% 0,100% 0,90% 100%,0 100%);background:#dcfce7;color:#14532d;width:150px;padding:9px 14px;text-align:center;font-size:.8rem;font-weight:600;line-height:1.4;'>輸入／輸出<\/div><\/div><div style='font-size:.85rem;color:#334155;'><strong>輸入／輸出<\/strong>：讀取資料或顯示結果（平行四邊形）<\/div><\/div><div style='display:grid;grid-template-columns:280px 1fr;align-items:center;gap:14px;background:#f8fafc;border-radius:10px;padding:8px 12px;'><div style='display:flex;justify-content:center;'><div style='clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);background:#fef3c7;color:#78350f;width:210px;padding:22px 26px;text-align:center;font-size:.8rem;font-weight:600;line-height:1.4;'>決策<\/div><\/div><div style='font-size:.85rem;color:#334155;'><strong>決策<\/strong>：判斷條件，分成「是／否」兩條路（菱形）<\/div><\/div><div style='display:grid;grid-template-columns:280px 1fr;align-items:center;gap:14px;background:#f8fafc;border-radius:10px;padding:8px 12px;'><div style='display:flex;justify-content:center;'><div style='clip-path:polygon(8% 0,92% 0,100% 50%,92% 100%,8% 100%,0 50%);background:#ede9fe;color:#4c1d95;width:150px;padding:9px 14px;text-align:center;font-size:.8rem;font-weight:600;line-height:1.4;'>迴圈<\/div><\/div><div style='font-size:.85rem;color:#334155;'><strong>迴圈<\/strong>：描述重複的次數或範圍（六邊形）<\/div><\/div><\/div><div style='background:#eff6ff;padding:11px 16px;border-radius:8px;border-left:4px solid #2563eb;'><p style='color:#374151;font-size:.88rem;margin:0;line-height:1.7;'>💬 ➡️ 另外還有<strong>箭頭<\/strong>（流程方向）和<strong>小圓圈<\/strong>（連接點，流程圖太長要接到另一頁時使用）。<\/p><\/div>\n", "quiz": null, "chart": null, "video": null}, {"id": 7, "title": "畫流程圖的規則", "chapter": "第二節：流程圖符號", "bg": "white", "html": "<h2 class='slide-title'>📐 畫流程圖的 5 個規則<\/h2>\n<div style='display:flex;flex-direction:column;gap:8px;margin-bottom:12px;'><div style='display:flex;gap:12px;align-items:flex-start;background:#eff6ff;border-radius:10px;padding:10px 14px;'><div style='width:28px;height:28px;border-radius:50%;background:#2563eb;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0;'>1<\/div><div><strong style='color:#1e40af;font-size:.88rem;'>一個開始、一個結束<\/strong><div style='font-size:.8rem;color:#475569;margin-top:3px;line-height:1.6;'>每張流程圖都從「開始」出發，最後到「結束」<\/div><\/div><\/div><div style='display:flex;gap:12px;align-items:flex-start;background:#eff6ff;border-radius:10px;padding:10px 14px;'><div style='width:28px;height:28px;border-radius:50%;background:#2563eb;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0;'>2<\/div><div><strong style='color:#1e40af;font-size:.88rem;'>由上而下、由左而右<\/strong><div style='font-size:.8rem;color:#475569;margin-top:3px;line-height:1.6;'>主要的流程方向保持一致，比較好讀<\/div><\/div><\/div><div style='display:flex;gap:12px;align-items:flex-start;background:#eff6ff;border-radius:10px;padding:10px 14px;'><div style='width:28px;height:28px;border-radius:50%;background:#2563eb;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0;'>3<\/div><div><strong style='color:#1e40af;font-size:.88rem;'>每個符號只做一件事<\/strong><div style='font-size:.8rem;color:#475569;margin-top:3px;line-height:1.6;'>一個矩形裡不要塞三個動作<\/div><\/div><\/div><div style='display:flex;gap:12px;align-items:flex-start;background:#eff6ff;border-radius:10px;padding:10px 14px;'><div style='width:28px;height:28px;border-radius:50%;background:#2563eb;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0;'>4<\/div><div><strong style='color:#1e40af;font-size:.88rem;'>決策一定有兩個出口<\/strong><div style='font-size:.8rem;color:#475569;margin-top:3px;line-height:1.6;'>菱形要標出「是」和「否」兩條路<\/div><\/div><\/div><div style='display:flex;gap:12px;align-items:flex-start;background:#eff6ff;border-radius:10px;padding:10px 14px;'><div style='width:28px;height:28px;border-radius:50%;background:#2563eb;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0;'>5<\/div><div><strong style='color:#1e40af;font-size:.88rem;'>箭頭不要交叉<\/strong><div style='font-size:.8rem;color:#475569;margin-top:3px;line-height:1.6;'>線太亂時，用連接點或重新排版<\/div><\/div><\/div><\/div>\n", "quiz": null, "chart": null, "video": null}, {"id": 8, "title": "找錯誤", "chapter": "第二節：流程圖符號", "bg": "white", "html": "<h2 class='slide-title'>🔍 找錯誤：這張流程圖哪裡怪怪的？<\/h2>\n<div style='display:grid;grid-template-columns:1.2fr 1fr;gap:12px;'><div style='display:flex;flex-direction:column;align-items:flex-start;gap:0;'><div style='display:flex;align-items:center;'><div style='width:230px;display:flex;justify-content:center;'><div style='border-radius:999px;background:#1e3a5f;color:#fff;width:170px;padding:9px 14px;text-align:center;font-size:.8rem;font-weight:600;line-height:1.4;'>開始<\/div><\/div><\/div><div style='width:230px;text-align:center;color:#64748b;font-size:.95rem;line-height:1.3;'>↓<\/div><div style='display:flex;align-items:center;'><div style='width:230px;display:flex;justify-content:center;'><div style='border-radius:4px;background:#dbeafe;color:#1e3a8a;width:170px;padding:9px 14px;text-align:center;font-size:.8rem;font-weight:600;line-height:1.4;'>輸入分數<\/div><\/div><div style='font-size:.75rem;color:#b45309;font-weight:600;margin-left:10px;'>← ①<\/div><\/div><div style='width:230px;text-align:center;color:#64748b;font-size:.95rem;line-height:1.3;'>↓<\/div><div style='display:flex;align-items:center;'><div style='width:230px;display:flex;justify-content:center;'><div style='clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);background:#fef3c7;color:#78350f;width:230px;padding:22px 26px;text-align:center;font-size:.8rem;font-weight:600;line-height:1.4;'>分數 ≥ 60<\/div><\/div><div style='font-size:.75rem;color:#b45309;font-weight:600;margin-left:10px;'>← ② 只有「是」<\/div><\/div><div style='width:230px;text-align:center;color:#64748b;font-size:.95rem;line-height:1.3;'>↓<\/div><div style='display:flex;align-items:center;'><div style='width:230px;display:flex;justify-content:center;'><div style='clip-path:polygon(10% 0,100% 0,90% 100%,0 100%);background:#dcfce7;color:#14532d;width:170px;padding:9px 14px;text-align:center;font-size:.8rem;font-weight:600;line-height:1.4;'>顯示「及格」<\/div><\/div><\/div><div style='width:230px;text-align:center;color:#64748b;font-size:.95rem;line-height:1.3;'>↓<\/div><div style='display:flex;align-items:center;'><div style='width:230px;display:flex;justify-content:center;'><div style='border-radius:999px;background:#1e3a5f;color:#fff;width:170px;padding:9px 14px;text-align:center;font-size:.8rem;font-weight:600;line-height:1.4;'>結束<\/div><\/div><\/div><\/div>\n<div style='background:#fff7ed;padding:14px;border-radius:10px;'><div style='font-size:1.8rem;'>🕵️<\/div><strong style='color:#9a3412;font-size:.9rem;'>你找到了嗎？<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'><details><summary style=\"cursor:pointer;font-weight:700;color:#9a3412;\">看答案<\/summary>① 「輸入分數」應該用<strong>平行四邊形<\/strong>（輸入／輸出），不是矩形。<br><br>② 決策菱形只畫了「是」，<strong>少了「否」<\/strong>的出口：不及格時要做什麼？應該加一條「否 → 顯示不及格」。<\/details><\/div><\/div><\/div>\n", "quiz": null, "chart": null, "video": null}, {"id": 9, "title": "畫流程圖的工具", "chapter": "第二節：流程圖符號", "bg": "white", "html": "<h2 class='slide-title'>🛠️ 用什麼工具畫流程圖？<\/h2>\n<div style='display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;'><div style='background:#fefce8;padding:14px;border-radius:10px;text-align:center;'><div style='font-size:1.8rem;'>✏️<\/div><strong style='color:#854d0e;font-size:.9rem;'>紙和筆<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>最快！先手繪草稿，想清楚再上電腦<\/div><\/div><div style='background:#eff6ff;padding:14px;border-radius:10px;text-align:center;'><div style='font-size:1.8rem;'>🖌️<\/div><strong style='color:#1e40af;font-size:.9rem;'>Google 繪圖<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>在雲端硬碟新增「Google 繪圖」，用「形狀」和「線條」拉出流程圖，可以插入到 Google 文件<\/div><\/div><div style='background:#f0fdf4;padding:14px;border-radius:10px;text-align:center;'><div style='font-size:1.8rem;'>📐<\/div><strong style='color:#166534;font-size:.9rem;'>draw.io（diagrams.net）<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>免費線上繪圖網站，內建標準流程圖符號，可以存到 Google 雲端硬碟<\/div><\/div><\/div>\n<div style='background:#eff6ff;padding:11px 16px;border-radius:8px;border-left:4px solid #2563eb;'><p style='color:#374151;font-size:.88rem;margin:0;line-height:1.7;'>💬 💡 小技巧：先畫好一個符號，按 Ctrl＋C、Ctrl＋V 複製，再改文字，整張圖的大小才會一致。<\/p><\/div>\n", "quiz": null, "chart": null, "video": null}, {"id": 10, "title": "第二節 隨堂測驗", "chapter": "第二節：流程圖符號", "bg": "purple", "quiz": "q2", "html": "\n<div style='text-align:center;padding:44px 20px;'>\n  <div style='font-size:54px;margin-bottom:16px;'>📝<\/div>\n  <h1 style='font-size:2rem;color:#fff;margin-bottom:10px;'>第二節 隨堂測驗<\/h1>\n  <p style='color:#e9d5ff;font-size:1rem;'>流程圖符號與規則 ｜ 3 題<\/p>\n  <p style='color:#c4b5fd;font-size:.85rem;margin-top:18px;'>按「下一頁 →」開始作答<\/p>\n<\/div>\n", "chart": null, "video": null}, {"id": 11, "title": "蛋炒飯的演算法", "chapter": "第三節：蛋炒飯流程圖", "bg": "white", "html": "<h2 class='slide-title'>🍚 蛋炒飯的演算法（文字版）<\/h2>\n<div style='display:grid;grid-template-columns:1.4fr 1fr;gap:12px;'><table style='width:100%;border-collapse:collapse;border-radius:10px;overflow:hidden;border:1px solid #e2e8f0;margin-bottom:12px;'><tr style='background:#1E3A5F;color:#fff;'><th style='padding:9px 12px;text-align:left;font-size:.8rem;width:50%;'>輸入<\/th><th style='padding:9px 12px;text-align:left;font-size:.8rem;width:50%;'>輸出<\/th><\/tr><tr style='background:#fff;'><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>油、蛋、飯、調味料<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>一盤蛋炒飯<\/td><\/tr><\/table>\n<div style='display:flex;flex-direction:column;gap:8px;margin-bottom:12px;'><div style='display:flex;gap:12px;align-items:flex-start;background:#fefce8;border-radius:10px;padding:10px 14px;'><div style='width:28px;height:28px;border-radius:50%;background:#f59e0b;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0;'>1<\/div><div><strong style='color:#854d0e;font-size:.88rem;'>鍋中倒入適量的油<\/strong><div style='font-size:.8rem;color:#475569;margin-top:3px;line-height:1.6;'><\/div><\/div><\/div><div style='display:flex;gap:12px;align-items:flex-start;background:#fefce8;border-radius:10px;padding:10px 14px;'><div style='width:28px;height:28px;border-radius:50%;background:#f59e0b;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0;'>2<\/div><div><strong style='color:#854d0e;font-size:.88rem;'>油熱了嗎？沒熱就繼續加熱<\/strong><div style='font-size:.8rem;color:#475569;margin-top:3px;line-height:1.6;'><\/div><\/div><\/div><div style='display:flex;gap:12px;align-items:flex-start;background:#fefce8;border-radius:10px;padding:10px 14px;'><div style='width:28px;height:28px;border-radius:50%;background:#f59e0b;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0;'>3<\/div><div><strong style='color:#854d0e;font-size:.88rem;'>開中火，加入蛋<\/strong><div style='font-size:.8rem;color:#475569;margin-top:3px;line-height:1.6;'><\/div><\/div><\/div><div style='display:flex;gap:12px;align-items:flex-start;background:#fefce8;border-radius:10px;padding:10px 14px;'><div style='width:28px;height:28px;border-radius:50%;background:#f59e0b;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0;'>4<\/div><div><strong style='color:#854d0e;font-size:.88rem;'>蛋凝固了嗎？沒凝固就快速攪拌<\/strong><div style='font-size:.8rem;color:#475569;margin-top:3px;line-height:1.6;'><\/div><\/div><\/div><div style='display:flex;gap:12px;align-items:flex-start;background:#fefce8;border-radius:10px;padding:10px 14px;'><div style='width:28px;height:28px;border-radius:50%;background:#f59e0b;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0;'>5<\/div><div><strong style='color:#854d0e;font-size:.88rem;'>加入米飯；飯散開了嗎？沒散開就翻炒<\/strong><div style='font-size:.8rem;color:#475569;margin-top:3px;line-height:1.6;'><\/div><\/div><\/div><div style='display:flex;gap:12px;align-items:flex-start;background:#fefce8;border-radius:10px;padding:10px 14px;'><div style='width:28px;height:28px;border-radius:50%;background:#f59e0b;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0;'>6<\/div><div><strong style='color:#854d0e;font-size:.88rem;'>加入調味料拌勻，結束<\/strong><div style='font-size:.8rem;color:#475569;margin-top:3px;line-height:1.6;'><\/div><\/div><\/div><\/div>\n<div style='background:#eff6ff;padding:14px;border-radius:10px;'><div style='font-size:1.8rem;'>🔍<\/div><strong style='color:#1e40af;font-size:.9rem;'>找一找<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>這份演算法裡：<br>🔹 有幾個「判斷」？<br>🔹 判斷「否」的時候要做什麼？<br>🔹 做完之後要回到哪裡？<br><br>👉 下一頁把它畫成流程圖！<\/div><\/div><\/div>\n", "quiz": null, "chart": null, "video": null}, {"id": 12, "title": "蛋炒飯流程圖", "chapter": "第三節：蛋炒飯流程圖", "bg": "white", "html": "<h2 class='slide-title'>🔀 蛋炒飯流程圖<\/h2>\n<div style='display:grid;grid-template-columns:1.5fr 1fr;gap:12px;'><div style='display:flex;flex-direction:column;align-items:flex-start;gap:0;'><div style='display:flex;align-items:center;'><div style='width:230px;display:flex;justify-content:center;'><div style='border-radius:999px;background:#1e3a5f;color:#fff;width:170px;padding:9px 14px;text-align:center;font-size:.8rem;font-weight:600;line-height:1.4;'>開始<\/div><\/div><\/div><div style='width:230px;text-align:center;color:#64748b;font-size:.95rem;line-height:1.3;'>↓<\/div><div style='display:flex;align-items:center;'><div style='width:230px;display:flex;justify-content:center;'><div style='border-radius:4px;background:#dbeafe;color:#1e3a8a;width:170px;padding:9px 14px;text-align:center;font-size:.8rem;font-weight:600;line-height:1.4;'>放入適量的油<\/div><\/div><\/div><div style='width:230px;text-align:center;color:#64748b;font-size:.95rem;line-height:1.3;'>↓<\/div><div style='display:flex;align-items:center;'><div style='width:230px;display:flex;justify-content:center;'><div style='clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);background:#fef3c7;color:#78350f;width:230px;padding:22px 26px;text-align:center;font-size:.8rem;font-weight:600;line-height:1.4;'>油熱了嗎？<\/div><\/div><div style='font-size:.75rem;color:#b45309;font-weight:600;margin-left:10px;'>否 → 加熱，再回來判斷<\/div><\/div><div style='width:230px;text-align:center;color:#64748b;font-size:.95rem;line-height:1.3;'>↓<\/div><div style='display:flex;align-items:center;'><div style='width:230px;display:flex;justify-content:center;'><div style='border-radius:4px;background:#dbeafe;color:#1e3a8a;width:170px;padding:9px 14px;text-align:center;font-size:.8rem;font-weight:600;line-height:1.4;'>開中火，加入蛋<\/div><\/div><\/div><div style='width:230px;text-align:center;color:#64748b;font-size:.95rem;line-height:1.3;'>↓<\/div><div style='display:flex;align-items:center;'><div style='width:230px;display:flex;justify-content:center;'><div style='clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);background:#fef3c7;color:#78350f;width:230px;padding:22px 26px;text-align:center;font-size:.8rem;font-weight:600;line-height:1.4;'>蛋凝固了嗎？<\/div><\/div><div style='font-size:.75rem;color:#b45309;font-weight:600;margin-left:10px;'>否 → 快速攪拌，再回來判斷<\/div><\/div><div style='width:230px;text-align:center;color:#64748b;font-size:.95rem;line-height:1.3;'>↓<\/div><div style='display:flex;align-items:center;'><div style='width:230px;display:flex;justify-content:center;'><div style='border-radius:4px;background:#dbeafe;color:#1e3a8a;width:170px;padding:9px 14px;text-align:center;font-size:.8rem;font-weight:600;line-height:1.4;'>加入米飯<\/div><\/div><\/div><div style='width:230px;text-align:center;color:#64748b;font-size:.95rem;line-height:1.3;'>↓<\/div><div style='display:flex;align-items:center;'><div style='width:230px;display:flex;justify-content:center;'><div style='clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);background:#fef3c7;color:#78350f;width:230px;padding:22px 26px;text-align:center;font-size:.8rem;font-weight:600;line-height:1.4;'>飯散開了嗎？<\/div><\/div><div style='font-size:.75rem;color:#b45309;font-weight:600;margin-left:10px;'>否 → 翻炒，再回來判斷<\/div><\/div><div style='width:230px;text-align:center;color:#64748b;font-size:.95rem;line-height:1.3;'>↓<\/div><div style='display:flex;align-items:center;'><div style='width:230px;display:flex;justify-content:center;'><div style='border-radius:4px;background:#dbeafe;color:#1e3a8a;width:170px;padding:9px 14px;text-align:center;font-size:.8rem;font-weight:600;line-height:1.4;'>加入調料拌勻<\/div><\/div><\/div><div style='width:230px;text-align:center;color:#64748b;font-size:.95rem;line-height:1.3;'>↓<\/div><div style='display:flex;align-items:center;'><div style='width:230px;display:flex;justify-content:center;'><div style='border-radius:999px;background:#1e3a5f;color:#fff;width:170px;padding:9px 14px;text-align:center;font-size:.8rem;font-weight:600;line-height:1.4;'>結束<\/div><\/div><\/div><\/div>\n<div style='background:#f5f3ff;padding:14px;border-radius:10px;'><div style='font-size:1.8rem;'>📖<\/div><strong style='color:#5b21b6;font-size:.9rem;'>讀圖重點<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>🔹 三個菱形＝三個判斷<br>🔹 判斷「是」→ 往下走<br>🔹 判斷「否」→ 做完動作後<strong>繞回菱形<\/strong>再判斷一次<br><br>「繞回去再判斷」就是<strong>重複<\/strong>，直到條件成立才離開。<\/div><\/div><\/div>\n", "quiz": null, "chart": null, "video": null}, {"id": 13, "title": "追蹤流程圖", "chapter": "第三節：蛋炒飯流程圖", "bg": "white", "html": "<h2 class='slide-title'>👣 追蹤流程圖：照著走一遍<\/h2>\n<table style='width:100%;border-collapse:collapse;border-radius:10px;overflow:hidden;border:1px solid #e2e8f0;margin-bottom:12px;'><tr style='background:#1E3A5F;color:#fff;'><th style='padding:9px 12px;text-align:left;font-size:.8rem;width:20%;'>第幾次檢查<\/th><th style='padding:9px 12px;text-align:left;font-size:.8rem;width:22%;'>油熱了嗎？<\/th><th style='padding:9px 12px;text-align:left;font-size:.8rem;width:18%;'>走哪條路<\/th><th style='padding:9px 12px;text-align:left;font-size:.8rem;width:40%;'>下一步<\/th><\/tr><tr style='background:#fff;'><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>1<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>否<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>否<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>加熱 → 回到判斷<\/td><\/tr><tr style='background:#f8fafc;'><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>2<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>否<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>否<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>加熱 → 回到判斷<\/td><\/tr><tr style='background:#fff;'><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>3<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>是<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>是<\/td><td style='padding:8px 12px;border-top:1px solid #e2e8f0;font-size:.8rem;color:#334155;vertical-align:top;line-height:1.6;'>開中火，加入蛋<\/td><\/tr><\/table>\n<div style='background:#eff6ff;padding:11px 16px;border-radius:8px;border-left:4px solid #2563eb;'><p style='color:#374151;font-size:.88rem;margin:0;line-height:1.7;'>💬 🧠 「追蹤」是檢查流程圖對不對的好方法：假設一些情況，用手指沿著箭頭走，看會不會卡住或停不下來。這個例子的「加熱」做了 2 次，但流程圖只畫了 1 個「加熱」——這就是重複的威力！<\/p><\/div>\n", "quiz": null, "chart": null, "video": null}, {"id": 14, "title": "輸入與輸出：求平均數", "chapter": "第三節：蛋炒飯流程圖", "bg": "white", "html": "<h2 class='slide-title'>🧮 數學問題也能畫：求 A 與 B 的平均數<\/h2>\n<div style='display:grid;grid-template-columns:1.2fr 1fr;gap:12px;'><div style='display:flex;flex-direction:column;align-items:flex-start;gap:0;'><div style='display:flex;align-items:center;'><div style='width:230px;display:flex;justify-content:center;'><div style='border-radius:999px;background:#1e3a5f;color:#fff;width:170px;padding:9px 14px;text-align:center;font-size:.8rem;font-weight:600;line-height:1.4;'>開始<\/div><\/div><\/div><div style='width:230px;text-align:center;color:#64748b;font-size:.95rem;line-height:1.3;'>↓<\/div><div style='display:flex;align-items:center;'><div style='width:230px;display:flex;justify-content:center;'><div style='clip-path:polygon(10% 0,100% 0,90% 100%,0 100%);background:#dcfce7;color:#14532d;width:170px;padding:9px 14px;text-align:center;font-size:.8rem;font-weight:600;line-height:1.4;'>輸入 A<\/div><\/div><\/div><div style='width:230px;text-align:center;color:#64748b;font-size:.95rem;line-height:1.3;'>↓<\/div><div style='display:flex;align-items:center;'><div style='width:230px;display:flex;justify-content:center;'><div style='clip-path:polygon(10% 0,100% 0,90% 100%,0 100%);background:#dcfce7;color:#14532d;width:170px;padding:9px 14px;text-align:center;font-size:.8rem;font-weight:600;line-height:1.4;'>輸入 B<\/div><\/div><\/div><div style='width:230px;text-align:center;color:#64748b;font-size:.95rem;line-height:1.3;'>↓<\/div><div style='display:flex;align-items:center;'><div style='width:230px;display:flex;justify-content:center;'><div style='border-radius:4px;background:#dbeafe;color:#1e3a8a;width:170px;padding:9px 14px;text-align:center;font-size:.8rem;font-weight:600;line-height:1.4;'>平均 ＝ (A＋B) ÷ 2<\/div><\/div><\/div><div style='width:230px;text-align:center;color:#64748b;font-size:.95rem;line-height:1.3;'>↓<\/div><div style='display:flex;align-items:center;'><div style='width:230px;display:flex;justify-content:center;'><div style='clip-path:polygon(10% 0,100% 0,90% 100%,0 100%);background:#dcfce7;color:#14532d;width:170px;padding:9px 14px;text-align:center;font-size:.8rem;font-weight:600;line-height:1.4;'>輸出 平均<\/div><\/div><\/div><div style='width:230px;text-align:center;color:#64748b;font-size:.95rem;line-height:1.3;'>↓<\/div><div style='display:flex;align-items:center;'><div style='width:230px;display:flex;justify-content:center;'><div style='border-radius:999px;background:#1e3a5f;color:#fff;width:170px;padding:9px 14px;text-align:center;font-size:.8rem;font-weight:600;line-height:1.4;'>結束<\/div><\/div><\/div><\/div>\n<div style='background:#f0fdf4;padding:14px;border-radius:10px;'><div style='font-size:1.8rem;'>📊<\/div><strong style='color:#166534;font-size:.9rem;'>問題分析<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>🔹 <strong>輸入<\/strong>：兩個數字 A、B<br>🔹 <strong>處理<\/strong>：(A＋B) ÷ 2<br>🔹 <strong>輸出<\/strong>：平均數<br><br>這張流程圖<strong>沒有菱形<\/strong>，從上到下一路走完，是最單純的<strong>循序<\/strong>流程。<br><br>📌 第 12 週會用 Scratch 把它寫成程式！<\/div><\/div><\/div>\n", "quiz": null, "chart": null, "video": null}, {"id": 15, "title": "第三節 隨堂測驗", "chapter": "第三節：蛋炒飯流程圖", "bg": "purple", "quiz": "q3", "html": "\n<div style='text-align:center;padding:44px 20px;'>\n  <div style='font-size:54px;margin-bottom:16px;'>📝<\/div>\n  <h1 style='font-size:2rem;color:#fff;margin-bottom:10px;'>第三節 隨堂測驗<\/h1>\n  <p style='color:#e9d5ff;font-size:1rem;'>畫與追蹤流程圖 ｜ 3 題<\/p>\n  <p style='color:#c4b5fd;font-size:.85rem;margin-top:18px;'>按「下一頁 →」開始作答<\/p>\n<\/div>\n", "chart": null, "video": null}, {"id": 16, "title": "讀流程圖：奇數還是偶數", "chapter": "第四節：讀懂流程圖", "bg": "white", "html": "<h2 class='slide-title'>🔢 讀流程圖：判斷奇數或偶數<\/h2>\n<div style='display:grid;grid-template-columns:1.3fr 1fr;gap:12px;'><div style='display:flex;flex-direction:column;align-items:flex-start;gap:0;'><div style='display:flex;align-items:center;'><div style='width:240px;display:flex;justify-content:center;'><div style='border-radius:999px;background:#1e3a5f;color:#fff;width:180px;padding:9px 14px;text-align:center;font-size:.8rem;font-weight:600;line-height:1.4;'>開始<\/div><\/div><\/div><div style='width:240px;text-align:center;color:#64748b;font-size:.95rem;line-height:1.3;'>↓<\/div><div style='display:flex;align-items:center;'><div style='width:240px;display:flex;justify-content:center;'><div style='clip-path:polygon(10% 0,100% 0,90% 100%,0 100%);background:#dcfce7;color:#14532d;width:180px;padding:9px 14px;text-align:center;font-size:.8rem;font-weight:600;line-height:1.4;'>輸入 數字<\/div><\/div><\/div><div style='width:240px;text-align:center;color:#64748b;font-size:.95rem;line-height:1.3;'>↓<\/div><div style='display:flex;align-items:center;'><div style='width:240px;display:flex;justify-content:center;'><div style='clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);background:#fef3c7;color:#78350f;width:240px;padding:22px 26px;text-align:center;font-size:.8rem;font-weight:600;line-height:1.4;'>數字 ÷ 2 的餘數 ＝ 0？<\/div><\/div><div style='font-size:.75rem;color:#b45309;font-weight:600;margin-left:10px;'>是 → 輸出「偶數」<\/div><\/div><div style='width:240px;text-align:center;color:#64748b;font-size:.95rem;line-height:1.3;'>↓<\/div><div style='display:flex;align-items:center;'><div style='width:240px;display:flex;justify-content:center;'><div style='clip-path:polygon(10% 0,100% 0,90% 100%,0 100%);background:#dcfce7;color:#14532d;width:180px;padding:9px 14px;text-align:center;font-size:.8rem;font-weight:600;line-height:1.4;'>輸出「奇數」<\/div><\/div><div style='font-size:.75rem;color:#b45309;font-weight:600;margin-left:10px;'>（否的路）<\/div><\/div><div style='width:240px;text-align:center;color:#64748b;font-size:.95rem;line-height:1.3;'>↓<\/div><div style='display:flex;align-items:center;'><div style='width:240px;display:flex;justify-content:center;'><div style='border-radius:999px;background:#1e3a5f;color:#fff;width:180px;padding:9px 14px;text-align:center;font-size:.8rem;font-weight:600;line-height:1.4;'>結束<\/div><\/div><\/div><\/div>\n<div style='background:#eff6ff;padding:14px;border-radius:10px;'><div style='font-size:1.8rem;'>👣<\/div><strong style='color:#1e40af;font-size:.9rem;'>追蹤看看<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>輸入 <strong>7<\/strong>：7 ÷ 2 ＝ 3 餘 <strong>1<\/strong> → 否 → 輸出？<br><br>輸入 <strong>10<\/strong>：10 ÷ 2 ＝ 5 餘 <strong>0<\/strong> → 是 → 輸出？<br><br><details><summary style=\"cursor:pointer;font-weight:700;color:#1e40af;\">看答案<\/summary>7 → 奇數；10 → 偶數<\/details><\/div><\/div><\/div>\n", "quiz": null, "chart": null, "video": null}, {"id": 17, "title": "先判斷還是先做？", "chapter": "第四節：讀懂流程圖", "bg": "white", "html": "<h2 class='slide-title'>🎲 闖關遊戲：先判斷，還是先做？<\/h2>\n<div style='display:grid;grid-template-columns:1.2fr 1fr;gap:12px;'><div style='background:#eff6ff;padding:14px;border-radius:10px;'><div style='font-size:1.8rem;'>✊<\/div><strong style='color:#1e40af;font-size:.9rem;'>前判斷：先猜拳再前進<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>回合開始 → 和關主猜拳 → <strong>贏了<\/strong>才前進一格 → 再猜……<br><br>如果第一次就輸：<strong>完全不前進<\/strong>。<\/div><\/div><div style='background:#f5f3ff;padding:14px;border-radius:10px;'><div style='font-size:1.8rem;'>🏃<\/div><strong style='color:#5b21b6;font-size:.9rem;'>後判斷：先前進再猜拳<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>回合開始 → <strong>先前進一格<\/strong> → 和關主猜拳 → 贏了再前進……<br><br>如果第一次就輸：<strong>至少前進了一格<\/strong>。<\/div><\/div><\/div>\n<div style='background:#fefce8;padding:11px 16px;border-radius:8px;border-left:4px solid #f59e0b;'><p style='color:#374151;font-size:.88rem;margin:0;line-height:1.7;'> 🧠 判斷放在「重複動作」的<strong>前面或後面<\/strong>，結果會不同：前判斷可能一次都不做，後判斷至少做一次。<\/p><\/div>\n", "quiz": null, "chart": null, "video": null}, {"id": 18, "title": "畫畫看：過馬路", "chapter": "第四節：讀懂流程圖", "bg": "white", "html": "<h2 class='slide-title'>✏️ 課堂練習：畫出「安全過馬路」的流程圖<\/h2>\n<div style='display:grid;grid-template-columns:1.3fr 1fr;gap:12px;'><div style='display:flex;flex-direction:column;gap:8px;margin-bottom:12px;'><div style='display:flex;gap:12px;align-items:flex-start;background:#f0fdf4;border-radius:10px;padding:10px 14px;'><div style='width:28px;height:28px;border-radius:50%;background:#16a34a;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0;'>1<\/div><div><strong style='color:#166534;font-size:.88rem;'>走到斑馬線前停下<\/strong><div style='font-size:.8rem;color:#475569;margin-top:3px;line-height:1.6;'><\/div><\/div><\/div><div style='display:flex;gap:12px;align-items:flex-start;background:#f0fdf4;border-radius:10px;padding:10px 14px;'><div style='width:28px;height:28px;border-radius:50%;background:#16a34a;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0;'>2<\/div><div><strong style='color:#166534;font-size:.88rem;'>看行人號誌：是綠燈嗎？<\/strong><div style='font-size:.8rem;color:#475569;margin-top:3px;line-height:1.6;'>否 → 等待，再看一次<\/div><\/div><\/div><div style='display:flex;gap:12px;align-items:flex-start;background:#f0fdf4;border-radius:10px;padding:10px 14px;'><div style='width:28px;height:28px;border-radius:50%;background:#16a34a;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0;'>3<\/div><div><strong style='color:#166534;font-size:.88rem;'>左右看：有車輛轉彎嗎？<\/strong><div style='font-size:.8rem;color:#475569;margin-top:3px;line-height:1.6;'>是 → 等車子過去，再看一次<\/div><\/div><\/div><div style='display:flex;gap:12px;align-items:flex-start;background:#f0fdf4;border-radius:10px;padding:10px 14px;'><div style='width:28px;height:28px;border-radius:50%;background:#16a34a;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0;'>4<\/div><div><strong style='color:#166534;font-size:.88rem;'>快步走過斑馬線<\/strong><div style='font-size:.8rem;color:#475569;margin-top:3px;line-height:1.6;'><\/div><\/div><\/div><\/div>\n<div style='background:#fefce8;padding:14px;border-radius:10px;'><div style='font-size:1.8rem;'>📝<\/div><strong style='color:#854d0e;font-size:.9rem;'>要求<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>🔹 用正確的符號<br>🔹 至少 <strong>2 個決策菱形<\/strong><br>🔹 每個菱形都標出「是／否」<br>🔹 先在紙上畫草稿，再用 Google 繪圖完成<\/div><\/div><\/div>\n", "quiz": null, "chart": null, "video": null}, {"id": 19, "title": "第四節 隨堂測驗", "chapter": "第四節：讀懂流程圖", "bg": "purple", "quiz": "q4", "html": "\n<div style='text-align:center;padding:44px 20px;'>\n  <div style='font-size:54px;margin-bottom:16px;'>📝<\/div>\n  <h1 style='font-size:2rem;color:#fff;margin-bottom:10px;'>第四節 隨堂測驗<\/h1>\n  <p style='color:#e9d5ff;font-size:1rem;'>讀懂流程圖 ｜ 3 題<\/p>\n  <p style='color:#c4b5fd;font-size:.85rem;margin-top:18px;'>按「下一頁 →」開始作答<\/p>\n<\/div>\n", "chart": null, "video": null}, {"id": 20, "title": "個人實作：流程圖設計學習單", "chapter": "個人實作", "bg": "white", "html": "<h2 class='slide-title'>📝 個人實作：流程圖設計學習單<\/h2>\n<div style='background:#eff6ff;border-radius:12px;padding:16px;margin-bottom:12px;'><p style='color:#1e40af;font-size:.9rem;font-weight:700;margin-bottom:8px;'>📋 在 Google 文件的學習單中完成<\/p><div style='display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;'><div style='background:#f8fafc;padding:14px;border-radius:10px;'><strong style='color:#334155;font-size:.9rem;'>任務 1：基本題<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>把「求三角形面積（底 × 高 ÷ 2）」畫成流程圖，標出輸入、處理、輸出<\/div><\/div><div style='background:#f8fafc;padding:14px;border-radius:10px;'><strong style='color:#334155;font-size:.9rem;'>任務 2：生活題<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>自選一件生活任務（例如出門前檢查、使用自助洗衣機），流程圖至少含 1 個決策<\/div><\/div><div style='background:#f8fafc;padding:14px;border-radius:10px;'><strong style='color:#334155;font-size:.9rem;'>任務 3：追蹤<\/strong><div style='font-size:.8rem;color:#475569;margin-top:6px;line-height:1.7;'>幫任務 2 設計 2 種情況，寫出每種情況會走哪些步驟<\/div><\/div><\/div>\n<\/div><div style='background:#fffbeb;border-radius:10px;padding:14px;'><strong style='color:#92400e;font-size:.9rem;'>📏 評分（課程計畫：流程圖繪製）<\/strong><p style='font-size:.78rem;color:#334155;margin-top:6px;line-height:1.8;'><strong style='color:#059669;'>A<\/strong> 能恰當使用符號，繪製完整且正確的流程圖<br><strong style='color:#2563eb;'>B<\/strong> 能自行完成完整的流程圖<br><strong style='color:#d97706;'>C<\/strong> 能仿照範例繪製流程圖<br><strong style='color:#dc2626;'>D<\/strong> 僅能仿照繪製部分流程圖<\/p><\/div>", "quiz": null, "chart": null, "video": null}, {"id": 21, "title": "本章重點回顧", "chapter": "個人實作", "bg": "navy", "html": "\n<h2 style='color:#fff;font-size:1.5rem;font-weight:700;margin-bottom:14px;'>📌 第 8–9 週 重點回顧<\/h2>\n<div style='display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;'><div style='background:rgba(255,255,255,.1);border-radius:10px;padding:13px;'><strong style='color:#93c5fd;font-size:.9rem;'>流程圖<\/strong><p style='color:#e2e8f0;font-size:.8rem;margin-top:5px;line-height:1.7;'>用標準符號和箭頭畫出演算法，比文字更清楚<\/p><\/div><div style='background:rgba(255,255,255,.1);border-radius:10px;padding:13px;'><strong style='color:#93c5fd;font-size:.9rem;'>五種符號<\/strong><p style='color:#e2e8f0;font-size:.8rem;margin-top:5px;line-height:1.7;'>橢圓＝開始結束、矩形＝處理、平行四邊形＝輸入輸出、菱形＝決策、六邊形＝迴圈<\/p><\/div><div style='background:rgba(255,255,255,.1);border-radius:10px;padding:13px;'><strong style='color:#93c5fd;font-size:.9rem;'>規則<\/strong><p style='color:#e2e8f0;font-size:.8rem;margin-top:5px;line-height:1.7;'>一個開始一個結束、由上而下、決策要有是／否兩個出口<\/p><\/div><div style='background:rgba(255,255,255,.1);border-radius:10px;padding:13px;'><strong style='color:#93c5fd;font-size:.9rem;'>追蹤<\/strong><p style='color:#e2e8f0;font-size:.8rem;margin-top:5px;line-height:1.7;'>假設情況、沿著箭頭走一遍，檢查流程圖是否正確<\/p><\/div><\/div>\n<div style='background:linear-gradient(90deg,rgba(13,148,136,.35),rgba(107,63,160,.35));border-radius:10px;padding:16px 20px;text-align:center;'>\n  <p style='color:#fff;font-size:1.02rem;font-weight:700;margin:0;'>流程圖畫好了，電腦要怎麼「看得懂」它？<\/p>\n  <p style='color:#cbd5e1;font-size:.82rem;margin-top:6px;'>下一週：程式語言與結構化程式設計<\/p>\n<\/div>\n", "quiz": null, "chart": null, "video": null}];window.__QUIZZES__={"q1": {"title": "第一節 隨堂測驗", "questions": [{"q": "把演算法畫成流程圖，最主要的好處是？", "options": ["讓電腦跑得更快", "一眼看出步驟順序、判斷和重複，寫程式前比較不會出錯", "可以取代所有程式", "讓檔案變小"], "answer": 1, "explain": "流程圖把步驟、判斷和重複用圖形清楚呈現，方便檢查和溝通，是寫程式前很好的規劃工具。"}, {"q": "流程中「依條件判斷，走不同的路」是哪一種基本走法？", "options": ["循序", "選擇", "重複", "結束"], "answer": 1, "explain": "選擇：遇到判斷時，依「是／否」走不同的路。循序是一路往下，重複是繞回前面再做一次。"}, {"q": "下列何者最像生活中的流程圖？", "options": ["一張風景照", "醫院牆上的「掛號 → 候診 → 看診 → 批價 → 領藥」指示", "一首歌的歌詞", "班級座位表"], "answer": 1, "explain": "看診流程指示用箭頭表示步驟順序，就是生活中的流程圖。"}]}, "q2": {"title": "第二節 隨堂測驗", "questions": [{"q": "流程圖中，「判斷條件、分成是／否兩條路」要用哪個符號？", "options": ["橢圓形", "矩形", "菱形", "平行四邊形"], "answer": 2, "explain": "菱形是決策符號，裡面寫判斷條件，並畫出「是」和「否」兩個出口。"}, {"q": "「輸入分數」或「顯示結果」應該用哪個符號？", "options": ["平行四邊形", "矩形", "菱形", "六邊形"], "answer": 0, "explain": "平行四邊形代表輸入／輸出。矩形是一般的處理或計算。"}, {"q": "下列哪一項「違反」畫流程圖的規則？", "options": ["從開始畫到結束", "流程由上而下", "決策菱形只畫了「是」的出口", "每個符號只做一件事"], "answer": 2, "explain": "決策一定要有「是」和「否」兩個出口，不然條件不成立時，流程就不知道要往哪裡走。"}]}, "q3": {"title": "第三節 隨堂測驗", "questions": [{"q": "蛋炒飯流程圖中，「油熱了嗎？」判斷為「否」時，下一步是？", "options": ["直接結束", "加熱，然後回到「油熱了嗎？」再判斷一次", "加入米飯", "加入調料"], "answer": 1, "explain": "油還沒熱就繼續加熱，再回去判斷，直到油熱了（是）才往下走。這就是用流程圖表示的重複。"}, {"q": "「求 A 與 B 的平均數」流程圖中，「平均 ＝ (A＋B) ÷ 2」應該放在哪個符號裡？", "options": ["橢圓形", "矩形（處理）", "菱形", "平行四邊形"], "answer": 1, "explain": "計算屬於「處理」，用矩形。輸入 A、B 和輸出平均才用平行四邊形。"}, {"q": "「追蹤流程圖」的意思是？", "options": ["把流程圖印出來", "假設一些情況，沿著箭頭一步步走，檢查結果是否正確", "把流程圖刪掉重畫", "幫流程圖上色"], "answer": 1, "explain": "追蹤就是「模擬執行」：給定輸入或情況，照著箭頭走，看會不會卡住、停不下來或得到錯誤結果。"}]}, "q4": {"title": "第四節 隨堂測驗", "questions": [{"q": "在「判斷奇偶數」流程圖中輸入 9，會輸出什麼？", "options": ["偶數", "奇數", "9", "0"], "answer": 1, "explain": "9 ÷ 2 ＝ 4 餘 1，餘數不等於 0 → 走「否」的路 → 輸出奇數。"}, {"q": "闖關遊戲用「前判斷」（先猜拳、贏了才前進），如果第一次猜拳就輸了，會怎樣？", "options": ["前進一格", "前進兩格", "完全不前進", "直接獲勝"], "answer": 2, "explain": "前判斷是先判斷再決定要不要做。第一次就輸，前進的動作一次都不會執行。"}, {"q": "關於「前判斷」與「後判斷」，下列何者正確？", "options": ["兩者結果一定相同", "後判斷的動作至少會執行一次", "前判斷的動作至少會執行一次", "後判斷不需要條件"], "answer": 1, "explain": "後判斷是「先做、再判斷」，所以動作至少會執行一次；前判斷可能一次都不做。"}]}};</script>
+
+<!-- 進度條 -->
+<div id="progress-bar" style="width:0%"></div>
+
+<!-- 頂部導覽列 -->
+<div id="topbar">
+  <a href="index.html" style="color:#94a3b8;text-decoration:none;font-size:.8rem;white-space:nowrap">🏠 首頁</a>
+  <span class="tb-title" id="tb-chapter">資訊科技 7 年級第二學期</span>
+  <span class="tb-counter" id="tb-counter">1 / 21</span>
+  <button id="btn-toc" onclick="toggleToc()">目錄 ☰</button>
+</div>
+
+<!-- 投影片主體 -->
+<div id="slide-wrap">
+  <div id="slide-frame" class="bg-navy"></div>
+</div>
+
+<!-- 底部導覽 -->
+<div id="nav-bar">
+  <button class="nav-btn" id="btn-prev" onclick="prevSlide()" disabled>← 上一頁</button>
+  <div id="slide-dots"></div>
+  <button class="nav-btn" id="btn-next" onclick="nextSlide()">下一頁 →</button>
+</div>
+
+<!-- TOC 側邊欄 -->
+<div id="toc">
+  <h3>📑 課程目錄</h3>
+  <div id="toc-list"></div>
+</div>
+
+<!-- 測驗 Modal -->
+<div id="quiz-overlay">
+  <div id="quiz-box">
+    <div id="quiz-header">
+      <h3 id="quiz-title">測驗</h3>
+      <span class="qh-score" id="quiz-score-preview"></span>
+    </div>
+    <div id="quiz-body"></div>
+    <div id="quiz-footer">
+      <span class="qf-score" id="quiz-result"></span>
+      <div style="display:flex;gap:10px">
+        <button id="btn-submit-quiz" onclick="submitQuiz()">送出答案</button>
+        <button id="btn-close-quiz" onclick="closeQuiz()">繼續學習 →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+//  從 Jinja2 模板取得 Flask 傳入的資料
+// ════════════════════════════════════════════════════════════
+const TOTAL_SLIDES = 21;
+const CHAPTERS_DATA = [{"name": "\u5c01\u9762", "start": 1}, {"name": "\u7b2c\u4e00\u7bc0\uff1a\u70ba\u4ec0\u9ebc\u8981\u756b\u6d41\u7a0b\u5716", "start": 2}, {"name": "\u7b2c\u4e8c\u7bc0\uff1a\u6d41\u7a0b\u5716\u7b26\u865f", "start": 6}, {"name": "\u7b2c\u4e09\u7bc0\uff1a\u86cb\u7092\u98ef\u6d41\u7a0b\u5716", "start": 11}, {"name": "\u7b2c\u56db\u7bc0\uff1a\u8b80\u61c2\u6d41\u7a0b\u5716", "start": 16}, {"name": "\u500b\u4eba\u5be6\u4f5c", "start": 20}];
+
+// ════════════════════════════════════════════════════════════
+//  全域狀態
+// ════════════════════════════════════════════════════════════
+let slides = [];
+let quizzes = {};
+let cur = 0;
+let answered = {};
+let tocVisible = true;
+const chartInstances = {};
+
+// ════════════════════════════════════════════════════════════
+//  初始化：從 Flask API 取得資料
+// ════════════════════════════════════════════════════════════
+async function init() {
+  try {
+    const [slidesRes, quizzesRes] = await Promise.all([
+      Promise.resolve({json:()=>window.__SLIDES__}),
+      Promise.resolve({json:()=>window.__QUIZZES__})
+    ]);
+    slides = await slidesRes.json();
+    quizzes = await quizzesRes.json();
+    buildToc();
+    buildDots();
+    goTo(0);
+  } catch (e) {
+    console.error('資料載入失敗：', e);
+    document.getElementById('slide-frame').innerHTML =
+      "<div style='color:red;padding:20px'>❌ 請確認 Flask 伺服器已啟動！<br><code>python app.py</code></div>";
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+//  建立目錄（TOC）
+// ════════════════════════════════════════════════════════════
+function buildToc() {
+  const list = document.getElementById('toc-list');
+  let lastChapter = '';
+  slides.forEach((s, i) => {
+    if (s.chapter !== lastChapter) {
+      const ch = document.createElement('div');
+      ch.className = 'toc-chapter';
+      ch.textContent = s.chapter;
+      list.appendChild(ch);
+      lastChapter = s.chapter;
+    }
+    const item = document.createElement('div');
+    item.className = 'toc-item';
+    item.id = `toc-${i}`;
+    item.textContent = `${s.id}. ${s.title}`;
+    item.onclick = () => goTo(i);
+    list.appendChild(item);
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+//  建立點狀導覽
+// ════════════════════════════════════════════════════════════
+function buildDots() {
+  const wrap = document.getElementById('slide-dots');
+  const step = Math.max(1, Math.floor(slides.length / 15));
+  slides.forEach((s, i) => {
+    if (i % step !== 0 && i !== slides.length - 1) return;
+    const d = document.createElement('div');
+    d.className = 'dot';
+    d.id = `dot-${i}`;
+    d.title = s.title;
+    d.onclick = () => goTo(i);
+    wrap.appendChild(d);
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+//  前往特定投影片
+// ════════════════════════════════════════════════════════════
+function goTo(idx) {
+  if (idx < 0 || idx >= slides.length) return;
+  cur = idx;
+  const s = slides[cur];
+  const frame = document.getElementById('slide-frame');
+  frame.className = '';
+  frame.classList.add('bg-' + s.bg);
+  frame.style.opacity = '0';
+  frame.innerHTML = s.html;
+  setTimeout(() => { frame.style.opacity = '1'; }, 30);
+  frame.scrollTop = 0;
+  if (s.chart) setTimeout(() => renderChart(s.chart), 80);
+  if (s.video) setTimeout(() => renderVideo(s.id, s.video), 80);
+  updateNav();
+  updateToc();
+  updateProgress();
+}
+
+// ════════════════════════════════════════════════════════════
+//  導覽：下一頁（有測驗時先觸發測驗）
+// ════════════════════════════════════════════════════════════
+function nextSlide() {
+  const s = slides[cur];
+  if (s.quiz && !answered[s.quiz]) {
+    showQuiz(s.quiz);
+  } else {
+    goTo(cur + 1);
+  }
+}
+function prevSlide() { goTo(cur - 1); }
+
+// ════════════════════════════════════════════════════════════
+//  更新導覽列、進度條、TOC
+// ════════════════════════════════════════════════════════════
+function updateNav() {
+  document.getElementById('btn-prev').disabled = cur === 0;
+  const isLast = cur === slides.length - 1;
+  const hasUnansweredQuiz = slides[cur].quiz && !answered[slides[cur].quiz];
+  document.getElementById('btn-next').disabled = isLast && !hasUnansweredQuiz;
+  document.getElementById('tb-chapter').textContent = slides[cur].chapter + '：' + slides[cur].title;
+  document.getElementById('tb-counter').textContent = `${cur + 1} / ${slides.length}`;
+  document.querySelectorAll('.dot').forEach(d => {
+    d.classList.remove('active');
+    const i = parseInt(d.id.replace('dot-', ''));
+    if (cur === i) d.classList.add('active');
+    else if (cur > i) d.classList.add('done');
+    else d.classList.remove('done');
+  });
+}
+
+function updateProgress() {
+  const pct = ((cur + 1) / slides.length) * 100;
+  document.getElementById('progress-bar').style.width = pct + '%';
+}
+
+function updateToc() {
+  document.querySelectorAll('.toc-item').forEach((el, i) => {
+    el.classList.remove('active', 'done');
+    if (i === cur) { el.classList.add('active'); el.scrollIntoView({block:'nearest'}); }
+    else if (i < cur) el.classList.add('done');
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+//  切換 TOC 顯示
+// ════════════════════════════════════════════════════════════
+function toggleToc() {
+  tocVisible = !tocVisible;
+  document.getElementById('toc').classList.toggle('hidden', !tocVisible);
+  document.getElementById('slide-wrap').classList.toggle('toc-hidden', !tocVisible);
+  document.getElementById('nav-bar').classList.toggle('toc-hidden', !tocVisible);
+}
+
+// ════════════════════════════════════════════════════════════
+//  鍵盤快捷鍵
+// ════════════════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === 'ArrowRight' || e.key === ' ') nextSlide();
+  if (e.key === 'ArrowLeft') prevSlide();
+});
+
+// ════════════════════════════════════════════════════════════
+//  影片渲染（YouTube 嵌入 / 搜尋按鈕 / 兩者兼具）
+//  嵌入使用 youtube-nocookie.com（不追蹤、不推薦其他影片、無個人化廣告）
+//  參數 rel=0（結束不推薦別家頻道）、modestbranding=1（隱藏 YT logo）
+// ════════════════════════════════════════════════════════════
+function _ytEmbedHtml(vid, title) {
+  // 使用 youtube-nocookie.com — YouTube 官方「隱私強化」網域，更乾淨
+  return `
+    <div class="video-embed">
+      <iframe src="https://www.youtube-nocookie.com/embed/${vid}?rel=0&modestbranding=1&iv_load_policy=3&fs=1"
+        allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        loading="lazy"></iframe>
+    </div>
+    <p style="text-align:center;font-size:.72rem;color:rgba(255,255,255,.55);margin-top:6px">▶ ${title}</p>`;
+}
+function _ytSearchHtml(query, title, desc) {
+  const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+  return `
+    <a href="${url}" target="_blank" class="video-search-btn">
+      <span class="yt-icon">▶️</span>
+      <span>
+        <strong>${title}</strong><br>
+        <small style="font-weight:400;opacity:.8">${desc}</small>
+      </span>
+    </a>`;
+}
+
+function renderVideo(slideId, video) {
+  const el = document.getElementById(`video-section-${slideId}`);
+  if (!el) return;
+  if (video.type === 'youtube') {
+    el.innerHTML = _ytEmbedHtml(video.id, video.title);
+  } else if (video.type === 'both') {
+    // 嵌入播放器 + 底下附「找不到？搜尋更多」備援
+    el.innerHTML = `
+      ${_ytEmbedHtml(video.id, video.title)}
+      <div style="margin-top:10px;">
+        ${_ytSearchHtml(video.query, video.search_title || '想看更多相關影片', video.desc || '在 YouTube 搜尋同主題其他教學')}
+      </div>`;
+  } else {
+    el.innerHTML = _ytSearchHtml(video.query, video.title, video.desc);
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+//  圖表渲染（Chart.js，防止重複建立）
+// ════════════════════════════════════════════════════════════
+function renderChart(type) {
+  if (type === 'formats') {
+    const el = document.getElementById('chart-formats');
+    if (!el || chartInstances['formats']) return;
+    chartInstances['formats'] = new Chart(el, {
+      type: 'bar',
+      data: {
+        labels: ['JPEG（照片）', 'PNG（圖示）', 'PNG（截圖）', 'SVG（Logo）'],
+        datasets: [{
+          label: '典型檔案大小（KB）',
+          data: [150, 400, 1200, 8],
+          backgroundColor: ['#3b82f6', '#22c55e', '#f59e0b', '#a855f7'],
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.raw} KB` } }
+        },
+        scales: {
+          y: {
+            type: 'logarithmic',
+            title: { display: true, text: '檔案大小 KB（對數刻度）', color:'#6b7280', font:{size:10} },
+            ticks: { color:'#6b7280', font:{size:10}, callback: v => v + ' KB' }
+          },
+          x: { ticks: { color:'#374151', font:{size:11} }, grid:{display:false} }
+        }
+      }
+    });
+  }
+
+  if (type === 'ai_tools') {
+    const el = document.getElementById('chart-ai-tools');
+    if (!el || chartInstances['ai_tools']) return;
+    chartInstances['ai_tools'] = new Chart(el, {
+      type: 'bar',
+      data: {
+        labels: ['ChatGPT GPT-4o', 'Canva AI', 'Midjourney', 'Adobe Firefly'],
+        datasets: [
+          {
+            label: '圖像品質',
+            data: [4, 3, 5, 4],
+            backgroundColor: 'rgba(107,63,160,.7)',
+            borderRadius: 4
+          },
+          {
+            label: '操作難易',
+            data: [5, 5, 2, 4],
+            backgroundColor: 'rgba(13,148,136,.7)',
+            borderRadius: 4
+          },
+          {
+            label: '授權安全',
+            data: [3, 4, 3, 5],
+            backgroundColor: 'rgba(245,158,11,.7)',
+            borderRadius: 4
+          }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { font:{size:10}, padding:8 } },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}：${'⭐'.repeat(ctx.raw)}` } }
+        },
+        scales: {
+          y: {
+            min: 0, max: 5,
+            ticks: { color:'#6b7280', font:{size:10}, stepSize: 1, callback: v => v + '⭐' }
+          },
+          x: { ticks: { color:'#374151', font:{size:10} }, grid:{display:false} }
+        }
+      }
+    });
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+//  測驗功能
+// ════════════════════════════════════════════════════════════
+let curQuizId = null;
+let quizUserAnswers = {};
+
+function showQuiz(qId) {
+  curQuizId = qId;
+  quizUserAnswers = {};
+  const q = quizzes[qId];
+  document.getElementById('quiz-title').textContent = q.title;
+  document.getElementById('quiz-score-preview').textContent = q.questions.length + ' 題';
+  document.getElementById('quiz-result').textContent = '';
+  document.getElementById('btn-submit-quiz').style.display = '';
+  document.getElementById('btn-close-quiz').style.display = 'none';
+
+  const body = document.getElementById('quiz-body');
+  body.innerHTML = '';
+  q.questions.forEach((question, qi) => {
+    const div = document.createElement('div');
+    div.className = 'quiz-q';
+    div.innerHTML = `<div class="q-text">${qi+1}. ${question.q}</div>
+      <div class="q-options" id="opts-${qi}">
+        ${question.options.map((opt, oi) =>
+          `<div class="q-opt" id="opt-${qi}-${oi}" onclick="selectOpt(${qi},${oi})">${opt}</div>`
+        ).join('')}
+      </div>`;
+    body.appendChild(div);
+  });
+  document.getElementById('quiz-overlay').classList.add('show');
+}
+
+function selectOpt(qi, oi) {
+  quizUserAnswers[qi] = oi;
+  const q = quizzes[curQuizId];
+  for (let o = 0; o < q.questions[qi].options.length; o++) {
+    document.getElementById(`opt-${qi}-${o}`).classList.toggle('selected', o === oi);
+  }
+}
+
+function submitQuiz() {
+  const q = quizzes[curQuizId];
+  let correct = 0;
+  q.questions.forEach((question, qi) => {
+    const chosen = quizUserAnswers[qi];
+    const opts = document.getElementById(`opts-${qi}`);
+    for (let o = 0; o < question.options.length; o++) {
+      const el = document.getElementById(`opt-${qi}-${o}`);
+      el.onclick = null;
+      el.classList.remove('selected');
+      if (o === question.answer) el.classList.add('correct');
+      else if (o === chosen && chosen !== question.answer) el.classList.add('wrong');
+    }
+    if (!opts.querySelector('.q-exp')) {
+      const exp = document.createElement('div');
+      exp.className = 'q-exp';
+      exp.innerHTML = '💡 ' + question.explain;   // 解析內容中的 <strong> 等標記
+      opts.after(exp);
+    }
+    if (chosen === question.answer) correct++;
+  });
+  const pct = Math.round((correct / q.questions.length) * 100);
+  document.getElementById('quiz-result').textContent = `得分：${correct}/${q.questions.length}（${pct}%）`;
+  document.getElementById('btn-submit-quiz').style.display = 'none';
+  document.getElementById('btn-close-quiz').style.display = 'inline-block';
+  answered[curQuizId] = true;
+}
+
+function closeQuiz() {
+  document.getElementById('quiz-overlay').classList.remove('show');
+  goTo(cur + 1);
+}
+
+// ════════════════════════════════════════════════════════════
+//  啟動
+// ════════════════════════════════════════════════════════════
+init();
+</script>
+</body>
+</html>
