@@ -150,27 +150,29 @@ SLIDES = [
               ['SSD（M.2）', '口香糖大小的長方形小板子', '記憶（輔助）'],
               ['電源供應器', '機殼角落的金屬盒，連到插座', '供電（不屬五大單元）'],
               ['顯示卡（若有）', '插在長插槽、有風扇的大卡片', '輸出（處理畫面）']], ['26%', '44%', '30%'])
-     + note('📸 拆裝時用平板拍下每個零件，回到座位後在 Google 簡報標註名稱。')},
+     + note('📸 下週實際拆裝時，每拆下一個零件就拍照，並記在分組學習單的「過程紀錄」裡。')},
 
     {'id': 18, 'title': '第四節 隨堂測驗', 'chapter': '第四節：打開主機看一看', 'bg': 'purple', 'quiz': 'q4',
      'html': quiz_cover('第四節 隨堂測驗', '拆裝安全與零件辨識 ｜ 3 題')},
 
     # ── 分組實作 ──
-    {'id': 19, 'title': '分組實作：主機拆裝紀錄', 'chapter': '分組實作', 'bg': 'white',
-     'html': title('🔧 分組實作：主機拆裝紀錄簡報')
-     + "<div style='background:#eff6ff;border-radius:12px;padding:16px;margin-bottom:12px;'>"
-       "<p style='color:#1e40af;font-size:.9rem;font-weight:700;margin-bottom:8px;'>📋 4 人一組：拆裝計畫 → 實際拆裝 → Google 簡報紀錄（至少 4 頁）</p>"
-     + grid(4,
-            card('gray', '分工', '拆裝手、紀錄員、拍照員、檢查員（輪流）'),
-            card('gray', '第 1 頁：拆裝計畫', '預計步驟與安全注意事項'),
-            card('gray', '第 2–3 頁：零件照片', '至少標註 5 個零件名稱與所屬單元'),
-            card('gray', '第 4 頁：組回測試', '開機成功了嗎？遇到什麼問題、怎麼解決'))
-     + "</div>"
+    {'id': 19, 'title': '分組學習單（上）：拆解前的準備', 'chapter': '分組實作', 'bg': 'white',
+     'html': title('🔧 分組學習單（上）：拆解前的準備')
+     + lead('📄 這份學習單會<strong>跨兩週</strong>完成：這週寫好「怎麼拆」，下週（第 4 週）真的動手拆，再把過程和型號記下來。'
+            '學習單在 Classroom：' + '「電腦硬體架構及拆解步驟說明」' + '（每組一份，組員共編）。', 'blue')
+     + grid(3,
+            card('blue', '① 組別、組員', '寫上組別和每位組員的座號、姓名', '👥'),
+            card('purple', '② 分工說明', '拆裝手、紀錄員、拍照員、檢查員，<strong>每個人都要有工作</strong>，下週可以輪流', '🧩'),
+            card('green', '③ 預計拆解步驟', '依序寫出至少 <strong>3 步</strong>（例如：關機拔電源 → 打開側板 → 拔下 RAM），每一步寫一個要注意的安全事項（第 16 頁）', '📝'))
      + two_col(
-         "<div style='background:#f0fdf4;border-radius:10px;padding:14px;'><strong style='color:#166534;font-size:.9rem;'>✅ 加分項目</strong>"
+         "<div style='background:#fffbeb;border-radius:10px;padding:14px;'><strong style='color:#92400e;font-size:.9rem;'>📅 下週要接著完成</strong>"
          "<ul style='color:#334155;font-size:.8rem;line-height:1.85;padding-left:18px;margin:6px 0 0;'>"
-         "<li>用「早餐店」以外的比喻解釋五大單元</li><li>查出 RAM 和 SSD 的容量</li><li>寫下每個人的分工與心得</li></ul></div>",
-         rubric_box('步驟正確安全、標註完整，能說明各零件功能與關係', '完成拆裝與紀錄，標註正確', '引導下完成拆裝與部分紀錄', '僅完成部分步驟', '📏 評分（規準：資料處理）'))},
+         "<li>拆解步驟說明及過程紀錄（每一步拍照）</li><li>填寫硬體型號表：主機板、CPU、RAM、SSD、顯示卡、光碟</li>"
+         "<li>實際拆解和預計步驟有什麼不同</li><li>心得與想法</li></ul></div>",
+         "<div style='background:#f0fdf4;border-radius:10px;padding:14px;'><strong style='color:#166534;font-size:.9rem;'>✅ 預計步驟寫得好的樣子</strong>"
+         "<ul style='color:#334155;font-size:.8rem;line-height:1.85;padding-left:18px;margin:6px 0 0;'>"
+         "<li>順序合理：先斷電、再開機殼、最後拆零件</li><li>每一步說得出要用什麼工具</li>"
+         "<li>寫出拆下的零件要放哪裡（螺絲盒、防靜電袋）</li></ul></div>")},
 
     {'id': 20, 'title': '本章重點回顧', 'chapter': '分組實作', 'bg': 'navy',
      'html': recap('第 3 週 重點回顧',
@@ -179,7 +181,7 @@ SLIDES = [
                     ('RAM vs ROM', 'RAM＝桌面（斷電消失），ROM＝說明書（存開機韌體，斷電保留）'),
                     ('輔助記憶體', 'HDD 便宜大容量、SSD 快又耐震；越快越貴越小')],
                    '照片 3 MB、電影 2 GB……這些「B」到底是什麼單位？',
-                   '下一週：儲存單位與周邊設備')},
+                   '下一週：實際拆裝（學習單下半）＋儲存單位與周邊設備')},
 ]
 
 QUIZZES = {

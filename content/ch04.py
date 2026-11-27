@@ -8,13 +8,13 @@ CHAPTERS = [
     {'name': '第二節：從 KB 到 TB', 'start': 7},
     {'name': '第三節：周邊設備', 'start': 12},
     {'name': '第四節：規格查詢 Lab', 'start': 17},
-    {'name': '個人實作', 'start': 20},
+    {'name': '分組實作', 'start': 20},
 ]
 
 SLIDES = [
     {'id': 1, 'title': '儲存單位與周邊設備', 'chapter': '封面', 'bg': 'navy',
      'html': cover('💾', '儲存單位與周邊設備', 'Storage Units · Peripheral Devices',
-                   ['🟦 bit / Byte', '📏 KB → TB', '⌨️ 輸入輸出', '🔍 規格查詢'], '第 4 週')},
+                   ['🟦 bit / Byte', '📏 KB → TB', '⌨️ 輸入輸出', '🔧 實際拆裝'], '第 4 週')},
 
     # ── 第一節 ──
     {'id': 2, 'title': '為什麼電腦只用 0 和 1？', 'chapter': '第一節：bit 與 Byte', 'bg': 'white',
@@ -159,28 +159,27 @@ SLIDES = [
      'html': quiz_cover('第四節 隨堂測驗', '規格查詢 ｜ 3 題')},
 
     # ── 個人實作 ──
-    {'id': 20, 'title': '個人實作：電腦教室規格調查', 'chapter': '個人實作', 'bg': 'white',
-     'html': title('📝 個人實作：電腦教室規格調查表')
-     + "<div style='background:#eff6ff;border-radius:12px;padding:16px;margin-bottom:12px;'>"
-       "<p style='color:#1e40af;font-size:.9rem;font-weight:700;margin-bottom:8px;'>📋 在 Google 文件完成以下表格</p>"
-     + table(['項目', '查到的規格', '用哪個方法查到的'],
-             [['處理器（CPU）', '', ''], ['記憶體（RAM）', '', ''], ['儲存裝置與容量', '', ''],
-              ['可用空間', '', ''], ['連接的周邊設備（列出 3 種並分類）', '', '']], ['34%', '36%', '30%'])
-     + "</div>"
+    {'id': 20, 'title': '分組學習單（下）：實際拆裝與紀錄', 'chapter': '分組實作', 'bg': 'white',
+     'html': title('🔧 分組學習單（下）：照第 3 週寫好的步驟拆，邊拆邊記')
      + two_col(
-         "<div style='background:#f0fdf4;border-radius:10px;padding:14px;'><strong style='color:#166534;font-size:.9rem;'>🧠 思考題（寫在表格下方）</strong>"
-         "<ul style='color:#334155;font-size:.8rem;line-height:1.85;padding-left:18px;margin:6px 0 0;'>"
-         "<li>這台電腦的硬碟可以放幾部 2 GB 的電影？寫出算式</li>"
-         "<li>如果要拿來剪輯影片，你建議升級哪個零件？為什麼？</li></ul></div>",
-         rubric_box('規格完整正確，換算與建議有清楚根據', '表格完成且正確', '引導下完成大部分表格', '僅完成部分表格', '📏 評分（規準：資料處理）'))},
+         table(['電腦硬體', '型號（怎麼找）'],
+               [['主機板', '板子上印的字，或 msinfo32「系統型號」'], ['CPU', '設定 → 系統 → 系統資訊「處理器」'],
+                ['RAM', '記憶體條上的貼紙（容量、DDR 幾）'], ['SSD', 'SSD 上的貼紙，或「磁碟管理」'],
+                ['顯示卡', '卡片上的貼紙，或工作管理員 → 效能 → GPU'], ['光碟', '光碟機正面或上方的標示；沒有就寫「無」']],
+               ['28%', '72%']),
+         grid(1,
+              card('gray', '① 拆解步驟說明及過程紀錄', '每一步寫做了什麼、附一張照片', '📸'),
+              card('gray', '② 實際和預計的差異', '哪一步跟原本想的不一樣？為什麼？', '🔄'),
+              card('gray', '③ 心得與想法', '最難的是哪一步？學到什麼？<br>加分：SSD 可以放幾部 2 GB 的電影？寫出算式', '💭'), gap=6), '1.15fr 1fr')
+     + rubric_box('步驟正確安全、型號表完整，能說明實際與預計的差異和原因', '完成拆裝與紀錄，型號表大致正確', '引導下完成拆裝與部分紀錄', '僅完成部分步驟', '📏 評分（規準：資料處理）')},
 
-    {'id': 21, 'title': '本章重點回顧', 'chapter': '個人實作', 'bg': 'navy',
+    {'id': 21, 'title': '本章重點回顧', 'chapter': '分組實作', 'bg': 'navy',
      'html': recap('第 4 週 重點回顧',
                    [('bit 與 Byte', '1 Byte ＝ 8 bits；n 個 bit 可表示 2 的 n 次方種狀態'),
                     ('單位階梯', 'KB → MB → GB → TB → PB，每階約 1,024 倍'),
                     ('周邊設備', '輸入（鍵盤、麥克風）、輸出（螢幕、喇叭）、兼具（觸控螢幕、隨身碟）'),
                     ('規格查詢', 'Windows：設定／msinfo32／工作管理員；Chromebook：chrome://system')],
-                   '預算 3 萬元，怎麼用試算表挑出最適合的電腦？',
+                   '預算 10 萬元，怎麼用試算表挑出最適合的電腦？',
                    '下一週：夢想電腦 Dream PC 試算表')},
 ]
 
